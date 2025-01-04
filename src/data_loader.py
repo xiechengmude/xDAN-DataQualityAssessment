@@ -23,9 +23,11 @@ class DatasetConfig:
         self.field_mapping = config['field_mapping']
 
 class DataLoader:
-    def __init__(self, config_path: str):
-        """初始化数据加载器"""
-        self.config = self._load_config(config_path)
+    """加载和处理数据集的类。"""
+    
+    def __init__(self, config):
+        """初始化数据加载器。"""
+        self.config = config if isinstance(config, dict) else self._load_config(config)
         self.dataset_configs = [DatasetConfig(cfg) for cfg in self.config['datasets']]
         self.common_config = self.config['dataset_common']
         self._setup_hf_cache()
