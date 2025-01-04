@@ -1,0 +1,49 @@
+2025-01-04 16:20:54,479 - src.data_loader - INFO - Loading dataset: tatsu-lab/alpaca, config: default, split: train, subset: None
+2025-01-04 16:21:21,762 - src.data_loader - INFO - Successfully loaded 10 items from tatsu-lab/alpaca
+2025-01-04 16:21:21,764 - src.data_loader - INFO - Converted 10 items to AlpacaItem format
+2025-01-04 16:21:21,764 - src.data_loader - INFO - Loading dataset: databricks/dolly-15k, config: default, split: train, subset: None
+2025-01-04 16:21:22,256 - src.data_loader - ERROR - Failed to load dataset databricks/dolly-15k: Dataset 'databricks/dolly-15k' doesn't exist on the Hub or cannot be accessed.
+2025-01-04 16:21:22,256 - src.data_loader - ERROR - Failed to process dataset databricks/dolly-15k: Dataset 'databricks/dolly-15k' doesn't exist on the Hub or cannot be accessed.
+2025-01-04 16:21:22,256 - src.data_loader - INFO - Total items loaded and converted: 10
+2025-01-04 16:21:28,210 - httpx - INFO - HTTP Request: POST http://35.240.173.116:7220/v1/chat/completions "HTTP/1.1 200 OK"
+2025-01-04 16:21:28,902 - httpx - INFO - HTTP Request: POST http://35.240.173.116:7220/v1/chat/completions "HTTP/1.1 200 OK"
+2025-01-04 16:21:29,575 - httpx - INFO - HTTP Request: POST http://35.240.173.116:7220/v1/chat/completions "HTTP/1.1 200 OK"
+2025-01-04 16:21:29,854 - httpx - INFO - HTTP Request: POST http://35.240.173.116:7220/v1/chat/completions "HTTP/1.1 200 OK"
+2025-01-04 16:21:29,910 - httpx - INFO - HTTP Request: POST http://35.240.173.116:7220/v1/chat/completions "HTTP/1.1 200 OK"
+2025-01-04 16:21:29,983 - httpx - INFO - HTTP Request: POST http://35.240.173.116:7220/v1/chat/completions "HTTP/1.1 200 OK"
+2025-01-04 16:21:30,602 - httpx - INFO - HTTP Request: POST http://35.240.173.116:7220/v1/chat/completions "HTTP/1.1 200 OK"
+2025-01-04 16:21:30,995 - httpx - INFO - HTTP Request: POST http://35.240.173.116:7220/v1/chat/completions "HTTP/1.1 200 OK"
+2025-01-04 16:21:32,048 - httpx - INFO - HTTP Request: POST http://35.240.173.116:7220/v1/chat/completions "HTTP/1.1 200 OK"
+2025-01-04 16:21:32,050 - httpx - INFO - HTTP Request: POST http://35.240.173.116:7220/v1/chat/completions "HTTP/1.1 200 OK"
+2025-01-04 16:21:34,255 - httpx - INFO - HTTP Request: POST http://35.240.173.116:7220/v1/chat/completions "HTTP/1.1 200 OK"
+2025-01-04 16:21:36,229 - httpx - INFO - HTTP Request: POST http://35.240.173.116:7220/v1/chat/completions "HTTP/1.1 200 OK"
+2025-01-04 16:21:36,612 - httpx - INFO - HTTP Request: POST http://35.240.173.116:7220/v1/chat/completions "HTTP/1.1 200 OK"
+2025-01-04 16:21:36,742 - httpx - INFO - HTTP Request: POST http://35.240.173.116:7220/v1/chat/completions "HTTP/1.1 200 OK"
+2025-01-04 16:21:37,391 - httpx - INFO - HTTP Request: POST http://35.240.173.116:7220/v1/chat/completions "HTTP/1.1 200 OK"
+2025-01-04 16:21:37,554 - httpx - INFO - HTTP Request: POST http://35.240.173.116:7220/v1/chat/completions "HTTP/1.1 200 OK"
+2025-01-04 16:21:39,092 - httpx - INFO - HTTP Request: POST http://35.240.173.116:7220/v1/chat/completions "HTTP/1.1 200 OK"
+2025-01-04 16:21:39,235 - httpx - INFO - HTTP Request: POST http://35.240.173.116:7220/v1/chat/completions "HTTP/1.1 200 OK"
+2025-01-04 16:21:39,531 - httpx - INFO - HTTP Request: POST http://35.240.173.116:7220/v1/chat/completions "HTTP/1.1 502 Bad Gateway"
+2025-01-04 16:21:39,531 - openai._base_client - INFO - Retrying request to /chat/completions in 0.426188 seconds
+2025-01-04 16:21:40,978 - httpx - INFO - HTTP Request: POST http://35.240.173.116:7220/v1/chat/completions "HTTP/1.1 200 OK"
+2025-01-04 16:21:41,213 - httpx - INFO - HTTP Request: POST http://35.240.173.116:7220/v1/chat/completions "HTTP/1.1 200 OK"
+2025-01-04 16:21:43,852 - httpx - INFO - HTTP Request: POST http://35.240.173.116:7220/v1/chat/completions "HTTP/1.1 200 OK"
+2025-01-04 16:21:43,856 - src.processor - ERROR - Error processing item: RetryError[<Future at 0x117d64670 state=finished raised ValueError>]
+2025-01-04 16:21:44,845 - httpx - INFO - HTTP Request: POST http://35.240.173.116:7220/v1/chat/completions "HTTP/1.1 200 OK"
+2025-01-04 16:21:44,847 - src.processor - ERROR - Error processing item: RetryError[<Future at 0x117e790f0 state=finished raised ValueError>]
+2025-01-04 16:21:45,006 - httpx - INFO - HTTP Request: POST http://35.240.173.116:7220/v1/chat/completions "HTTP/1.1 200 OK"
+2025-01-04 16:21:45,007 - src.processor - ERROR - Error processing item: RetryError[<Future at 0x117e79330 state=finished raised ValueError>]
+2025-01-04 16:21:45,379 - httpx - INFO - HTTP Request: POST http://35.240.173.116:7220/v1/chat/completions "HTTP/1.1 200 OK"
+2025-01-04 16:21:45,380 - src.processor - ERROR - Error processing item: RetryError[<Future at 0x117e86d40 state=finished raised ValueError>]
+2025-01-04 16:21:45,699 - httpx - INFO - HTTP Request: POST http://35.240.173.116:7220/v1/chat/completions "HTTP/1.1 200 OK"
+2025-01-04 16:21:45,700 - src.processor - ERROR - Error processing item: RetryError[<Future at 0x117e36d40 state=finished raised ValueError>]
+2025-01-04 16:21:46,717 - httpx - INFO - HTTP Request: POST http://35.240.173.116:7220/v1/chat/completions "HTTP/1.1 200 OK"
+2025-01-04 16:21:46,719 - src.processor - ERROR - Error processing item: RetryError[<Future at 0x117e85db0 state=finished raised ValueError>]
+2025-01-04 16:21:47,882 - httpx - INFO - HTTP Request: POST http://35.240.173.116:7220/v1/chat/completions "HTTP/1.1 200 OK"
+2025-01-04 16:21:47,884 - src.processor - ERROR - Error processing item: RetryError[<Future at 0x117dcece0 state=finished raised ValueError>]
+2025-01-04 16:21:48,646 - httpx - INFO - HTTP Request: POST http://35.240.173.116:7220/v1/chat/completions "HTTP/1.1 200 OK"
+2025-01-04 16:21:48,648 - src.processor - ERROR - Error processing item: RetryError[<Future at 0x117e872e0 state=finished raised ValueError>]
+2025-01-04 16:21:50,926 - httpx - INFO - HTTP Request: POST http://35.240.173.116:7220/v1/chat/completions "HTTP/1.1 200 OK"
+2025-01-04 16:21:50,929 - src.processor - ERROR - Error processing item: RetryError[<Future at 0x117e1a9e0 state=finished raised ValueError>]
+2025-01-04 16:21:52,458 - httpx - INFO - HTTP Request: POST http://35.240.173.116:7220/v1/chat/completions "HTTP/1.1 200 OK"
+2025-01-04 16:21:52,459 - src.processor - ERROR - Error processing item: RetryError[<Future at 0x117e08a30 state=finished raised ValueError>]

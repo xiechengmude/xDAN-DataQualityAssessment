@@ -1,0 +1,60 @@
+# 质量评估指标配置
+
+quality_metrics:
+  reasoning_depth:  # 推理深度
+    weight: 0.2
+    description: "评估推理过程的深度、严谨性和创新性"
+    score_range: [1, 10]
+    aspects:
+      - "推理步骤的完整性和严谨性"
+      - "分析问题的深度和多角度思考"
+      - "结论的创新性和合理性"
+      - "知识整合和迁移能力"
+
+  correctness:  # 准确性
+    weight: 0.3
+    description: "评估内容的准确性，包括事实、计算和逻辑"
+    score_range: [1, 10]
+    aspects:
+      - "事实和信息的准确性"
+      - "计算和推导的正确性"
+      - "逻辑关系的合理性"
+
+  clarity:  # 清晰度
+    weight: 0.2
+    description: "评估表达的清晰度和结构的合理性"
+    score_range: [1, 10]
+    aspects:
+      - "语言表达的清晰度和准确性"
+      - "结构组织的合理性"
+      - "专业术语使用的恰当性"
+
+  context_awareness:  # 上下文理解
+    weight: 0.15
+    description: "评估对上下文的理解和回应的相关性"
+    score_range: [1, 10]
+    aspects:
+      - "上下文理解的准确性"
+      - "回应的相关性和连贯性"
+      - "信息完整性和充分性"
+
+  engagement:  # 互动质量
+    weight: 0.15
+    description: "评估对话的参与度和启发性"
+    score_range: [1, 10]
+    aspects:
+      - "回应的启发性和深度"
+      - "互动的自然度和适应性"
+      - "问题探讨的深入度"
+
+# 验证规则
+validation_rules:
+  - rule: "所有评分必须在指定的score_range范围内"
+  - rule: "所有权重之和必须等于1.0"
+  - rule: "每个维度至少要有一个评估aspect"
+
+# 改进建议优先级
+improvement_priority:
+  high: 1    # 严重影响数据质量，需要立即改进
+  medium: 2  # 对数据质量有一定影响，建议改进
+  low: 3     # 可以改进但不影响主要功能
