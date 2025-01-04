@@ -1,6 +1,8 @@
+# 任务配置
 task_name: data_transform
 description: Transform Alpaca format dataset to structured prompt format
 
+# 输入配置
 input:
   format: alpaca
   fields:
@@ -8,35 +10,15 @@ input:
     - input
     - output
 
-output:
-  base_dir: "outputs"  # 基础输出目录
-  save_local: true  # 是否保存到本地
-  push_to_hub: true  # 是否推送到Hugging Face Hub
-  hub_config:
-    repository_id: "xDAN2099"  # Hugging Face Hub 仓库ID
-    private: true  # 是否为私有仓库
-    token: ${HUGGINGFACE_TOKEN}  # Hugging Face Hub token
-  save_format: "json"  # 支持: json, jsonl, parquet
-  include_metadata: true
-  file_naming:
-    task_name: "data_transform"  # 任务名称
-    include_timestamp: true  # 是否包含时间戳
-    include_dataset_info: true  # 是否包含数据集信息
-    include_sample_count: true  # 是否包含样本数量
-  file_path: "${output.base_dir}/refined_alpaca.json"  # 默认输出文件路径
-
-processing:
-  validate_input: true
-  preserve_original: true
-  add_metadata: true
-
+# OpenAI配置
 openai:
   model_name: "deepseek-chat"
-  max_tokens: 8192
+  max_tokens: 4096
   temperature: 0.7
   api_key: "sk-cUaGu4E02RDTCxnnC3398860D5944953A4Fa9c5dA13aF93e"
   api_base: "http://35.240.173.116:7220/v1"
 
+# 并发配置
 concurrency:
   max_concurrent_requests: 50
   batch_size: 200
@@ -44,62 +26,77 @@ concurrency:
   max_retries: 3
   retry_delay: 1
 
+# 速率限制
 rate_limits:
   tokens_per_minute: 10000
   requests_per_minute: 1000
 
+# 数据集配置
 datasets:
-  - name: "tatsu-lab/alpaca"
+  - name: "xDAN2099/xDAN-Agentic-Chat-v1-alpaca-ds-v3-cleaned-v0-part2"
     config: ""
     split: "train"
     subset: ""
-    num_samples: 5
+    num_samples: -1
     field_mapping:
       instruction: "instruction"
       input: "input"
       output: "output"
-    
-  - name: "yahma/alpaca-cleaned"
-    config: ""
-    split: "train"
-    subset: ""
-    num_samples: 5
-    field_mapping:
-      instruction: "instruction"
-      input: ""
-      output: "output"
+  
+  # - name: "yahma/alpaca-cleaned"
+  #   config: ""
+  #   split: "train"
+  #   subset: ""
+  #   num_samples: 5
+  #   field_mapping:
+  #     instruction: "instruction"
+  #     input: ""
+  #     output: "output"
 
+# 数据集通用配置
 dataset_common:
   hf_cache_dir: "~/.cache/huggingface/datasets"
   shuffle_seed: 42
   combine_datasets: true
 
+# 转换配置
 transform:
   validate_input: true
   preserve_original: true
-  add_metadata: true
+  required_fields:
+    - instruction
+    - output
+
+# 提示配置
+prompt:
+  format: "structured_prompt"
+  template: "system_long_cot_analysis"
   components:
-    analyze:
-      required: true
-      use_llm: false
-      template: |
-        - Key aspects identified
-        - Scope defined
-        - Evaluation criteria established
-    solve:
-      required: true
-      use_llm: false
-      template: |
-        - Systematic examination
-        - Evidence provided
-        - Multiple perspectives considered
-    verify:
-      required: true
-      use_llm: false
-      template: |
-        - Comprehensiveness checked
-        - Arguments validated
-        - Objectivity assessed
-    solution:
-      required: true
-      use_original: true
+    - Analyze
+    - Solve
+    - Verify
+    - Solution
+
+# 输出配置
+output:
+  base_dir: "outputs"  # 基础输出目录
+  save_local: true  # 是否保存到本地
+  push_to_hub: true  # 是否推送到Hugging Face Hub
+  hub_config:
+    repository_id: "xDAN2099"  # Hugging Face Hub 仓库ID
+    private: true  # 是否为私有仓库
+    token: "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"  # Hugging Face Hub token
+  save_format: "json"  # 支持: json, jsonl, parquet
+  include_metadata: true
+  file_naming:
+    task_name: "xDAN-Agentic-Chat-v1-part2"  # 任务名称
+    include_timestamp: true  # 是否包含时间戳
+    include_dataset_info: true  # 是否包含数据集信息
+    include_sample_count: true  # 是否包含样本数量
+  file_path: "${output.base_dir}/refined_xDAN-Agentic-Chat-v1-part2.json"
+
+# 日志配置
+logging:
+  level: "INFO"
+  save_path: "logs"
+  file_name: "processing.log"

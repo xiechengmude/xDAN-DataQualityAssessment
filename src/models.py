@@ -218,3 +218,148 @@ class BatchResult(BaseModel):
             )
         
         return enhanced_items
+
+class StructuredPromptItem(BaseModel):
+    """结构化prompt格式的数据项"""
+    question: str
+    components: Dict[str, str] = Field(
+        description="包含Analyze、Solve、Verify、Solution等组件的内容"
+    )
+    metadata: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="原始数据和转换信息的元数据"
+    )
+
+    @classmethod
+    def from_alpaca_item(cls, item: AlpacaItem, template: str) -> 'StructuredPromptItem':
+        """从AlpacaItem创建StructuredPromptItem"""
+        question = item.instruction
+        if item.input:
+            question += f"\nContext: {item.input}"
+            
+        return cls(
+            question=question,
+            components={
+                'Analyze': "- Key aspects identified\n- Scope defined\n- Evaluation criteria established",
+                'Solve': "- Systematic examination\n- Evidence provided\n- Multiple perspectives considered",
+                'Verify': "- Comprehensiveness checked\n- Arguments validated\n- Objectivity assessed",
+                'Solution': item.output
+            },
+            metadata={
+                'original_format': 'alpaca',
+                'transformation_template': template,
+                'original_instruction': item.instruction,
+                'original_input': item.input,
+                'original_output': item.output,
+                'sources': item.sources
+            }
+        )
+
+class QuestionAnalysis(BaseModel):
+    """问题分析结果"""
+    original_question: str
+    question_quality: Dict[str, float] = Field(
+        description="问题质量评分，包括清晰度、具体性、合理性等"
+    )
+    improvement_suggestions: List[str] = Field(
+        description="问题改进建议"
+    )
+    improved_question: str = Field(
+        description="改进后的问题"
+    )
+
+class AnswerAnalysis(BaseModel):
+    """答案分析结果"""
+    original_answer: str
+    answer_quality: Dict[str, float] = Field(
+        description="答案质量评分，包括完整性、准确性、逻辑性等"
+    )
+    improvement_suggestions: List[str] = Field(
+        description="答案改进建议"
+    )
+    improved_answer: str = Field(
+        description="改进后的答案"
+    )
+
+class EnhancedStructuredPromptItem(BaseModel):
+    """增强的结构化prompt数据项，包含问题和答案的分析"""
+    question: str
+    components: Dict[str, str] = Field(
+        description="包含Analyze、Solve、Verify、Solution等组件的内容"
+    )
+    question_analysis: QuestionAnalysis = Field(
+        description="问题分析结果"
+    )
+    answer_analysis: AnswerAnalysis = Field(
+        description="答案分析结果"
+    )
+    metadata: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="原始数据和转换信息的元数据"
+    )
+
+    @classmethod
+    def from_alpaca_item(cls, 
+                        item: AlpacaItem, 
+                        template: str,
+                        question_analysis: QuestionAnalysis,
+                        answer_analysis: AnswerAnalysis) -> 'EnhancedStructuredPromptItem':
+        """从AlpacaItem和分析结果创建EnhancedStructuredPromptItem"""
+        question = question_analysis.improved_question
+            
+        return cls(
+            question=question,
+            components={
+                'Analyze': f"""问题分析：
+- 原始问题：{question_analysis.original_question}
+- 问题质量评估：{', '.join(f'{k}: {v}' for k, v in question_analysis.question_quality.items())}
+- 改进建议：{'; '.join(question_analysis.improvement_suggestions)}
+- 改进后的问题：{question_analysis.improved_question}
+
+答案分析：
+- 原始答案质量评估：{', '.join(f'{k}: {v}' for k, v in answer_analysis.answer_quality.items())}
+- 改进建议：{'; '.join(answer_analysis.improvement_suggestions)}""",
+                'Solve': "基于改进后的问题和分析，提供解决方案：\n" + answer_analysis.improved_answer,
+                'Verify': """验证改进效果：
+- 问题改进是否有效
+- 答案是否更加完整和准确
+- 整体质量是否提升""",
+                'Solution': answer_analysis.improved_answer
+            },
+            question_analysis=question_analysis,
+            answer_analysis=answer_analysis,
+            metadata={
+                'original_format': 'alpaca',
+                'transformation_template': template,
+                'original_instruction': item.instruction,
+                'original_input': item.input,
+                'original_output': item.output,
+                'sources': item.sources
+            }
+        )
+
+class RefinedAlpacaItem(BaseModel):
+    """带有结构化输出的Alpaca数据项"""
+    instruction: str
+    input: str = ""
+    output: str
+    refined_output: str = Field(
+        description="包含结构化标签的改进输出，例如<Analyze>...</Analyze>"
+    )
+    sources: str = Field(default="")
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+
+    @classmethod
+    def from_alpaca_item(cls, item: AlpacaItem, refined_output: str) -> 'RefinedAlpacaItem':
+        """从AlpacaItem创建RefinedAlpacaItem"""
+        return cls(
+            instruction=item.instruction,
+            input=item.input,
+            output=item.output,
+            refined_output=refined_output,
+            sources=item.sources,
+            metadata={
+                'original_format': 'alpaca',
+                'transformation_time': datetime.now().isoformat()
+            }
+        )

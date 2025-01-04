@@ -13,8 +13,20 @@ while [[ $# -gt 0 ]]; do
             CONFIG_FILE="$2"
             shift 2
             ;;
+        --output)
+            OUTPUT_ARG="--output $2"
+            shift 2
+            ;;
+        --push-to-hub)
+            PUSH_ARG="--push-to-hub"
+            shift
+            ;;
+        --no-push-to-hub)
+            PUSH_ARG="--no-push-to-hub"
+            shift
+            ;;
         *)
-            echo "Usage: $0 [--config config_file.yaml]"
+            echo "Usage: $0 [--config config_file.yaml] [--output output_file.json] [--push-to-hub | --no-push-to-hub]"
             exit 1
             ;;
     esac
@@ -29,8 +41,23 @@ fi
 echo "Starting data transformation..."
 echo "Using config file: $CONFIG_FILE"
 
+# 构建命令
+CMD="python scripts/transform_data.py --config $CONFIG_FILE"
+if [ ! -z "$OUTPUT_ARG" ]; then
+    CMD="$CMD $OUTPUT_ARG"
+    echo "Output path overridden by command line argument"
+fi
+if [ ! -z "$PUSH_ARG" ]; then
+    CMD="$CMD $PUSH_ARG"
+    if [ "$PUSH_ARG" == "--push-to-hub" ]; then
+        echo "Will push results to HuggingFace Hub (forced by command line)"
+    else
+        echo "Will NOT push results to HuggingFace Hub (disabled by command line)"
+    fi
+fi
+
 # 运行转换脚本
-python scripts/transform_data.py --config "$CONFIG_FILE"
+eval $CMD
 
 # 检查运行结果
 if [ $? -eq 0 ]; then
