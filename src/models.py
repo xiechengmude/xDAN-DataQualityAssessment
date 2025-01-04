@@ -147,7 +147,7 @@ class AlpacaItem(BaseModel):
 class ProcessedItem(BaseModel):
     """处理后的数据项"""
     id: str
-    source: str
+    sources: str  # 改为sources以保持一致性
     instruction: str
     input: str
     output: str
@@ -159,6 +159,7 @@ class ProcessedItem(BaseModel):
 
     @property
     def quality_score(self) -> float:
+        """计算质量得分"""
         return self.score
 
 class ImprovementSuggestion(BaseModel):

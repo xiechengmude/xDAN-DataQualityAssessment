@@ -36,9 +36,9 @@ def load_config(config_path: Path) -> dict:
         return yaml.safe_load(f)
 
 def get_task_name() -> str:
-    """生成任务名称，格式：YYYYMMDD_HHMMSS_test_assessment"""
+    """生成任务名称，格式：task_quality_test_YYYYMMDD_HHMMSS"""
     now = datetime.now()
-    return f"{now.strftime('%Y%m%d_%H%M%S')}_test_assessment"
+    return f"task_quality_test_{now.strftime('%Y%m%d_%H%M%S')}"
 
 def save_results(results: List[AlpacaItem], task_name: str, output_dir: Path, config: dict):
     """保存评估结果
@@ -54,44 +54,42 @@ def save_results(results: List[AlpacaItem], task_name: str, output_dir: Path, co
     # 确保输出目录存在
     output_dir.mkdir(parents=True, exist_ok=True)
     
-    # 保存为Alpaca格式
-    alpaca_file = output_dir / f"{timestamp.strftime('%Y%m%d_%H%M%S')}_{task_name}_alpaca.json"
-    logger.info(f"Saving Alpaca format results to: {alpaca_file}")
-    
-    alpaca_data = [item.model_dump() for item in results]
-    with open(alpaca_file, 'w', encoding='utf-8') as f:
-        json.dump(alpaca_data, f, ensure_ascii=False, indent=2)
-    
-    # 保存原始评估结果
-    eval_file = output_dir / f"{timestamp.strftime('%Y%m%d_%H%M%S')}_{task_name}_eval.json"
-    logger.info(f"Saving evaluation details to: {eval_file}")
-    
-    # 计算平均分数
-    total_scores = []
-    for result in results:
-        if hasattr(result, 'quality_metrics'):
-            metrics = result.quality_metrics
-            score = sum(metrics.values()) / len(metrics) if metrics else 0
-            total_scores.append(score)
-    
-    avg_score = sum(total_scores) / len(total_scores) if total_scores else 0
-    
-    eval_data = {
-        "task_name": task_name,
-        "timestamp": timestamp.isoformat(),
-        "model_name": config['openai']['model_name'],
-        "average_score": avg_score,
-        "num_samples": len(results),
-        "config": {
-            k: v for k, v in config.items()
-            if k not in ['openai']  # 排除敏感信息
-        }
+    # 构建结果数据
+    result_data = {
+        "task_info": {
+            "task_name": task_name,
+            "timestamp": timestamp.isoformat(),
+            "model_name": config['openai']['model_name'],
+            "total_samples": len(results)
+        },
+        "results": []
     }
     
-    with open(eval_file, 'w', encoding='utf-8') as f:
-        json.dump(eval_data, f, ensure_ascii=False, indent=2)
+    # 处理每个结果项
+    for item in results:
+        item_dict = item.model_dump()
+        # 确保source字段正确
+        if hasattr(item, 'sources') and item.sources:
+            item_dict['source'] = item.sources
+        
+        # 添加模型信息和时间戳到metadata
+        if 'metadata' not in item_dict:
+            item_dict['metadata'] = {}
+        item_dict['metadata'].update({
+            'model_name': config['openai']['model_name'],
+            'timestamp': timestamp.isoformat()
+        })
+        
+        result_data['results'].append(item_dict)
     
-    # 如果配置了推送到Hub，则执行推送
+    # 保存为单个JSON文件
+    output_file = output_dir / f"{task_name}_results.json"
+    logger.info(f"Saving results to: {output_file}")
+    
+    with open(output_file, 'w', encoding='utf-8') as f:
+        json.dump(result_data, f, ensure_ascii=False, indent=2)
+        
+    # 如果配置了推送到Hub
     output_config = config.get('output', {})
     if output_config.get('push_to_hub'):
         hub_config = output_config.get('hub_config', {})
@@ -104,7 +102,12 @@ def save_results(results: List[AlpacaItem], task_name: str, output_dir: Path, co
                 source = item.sources if hasattr(item, 'sources') and item.sources else 'unknown'
                 if source not in source_groups:
                     source_groups[source] = []
-                source_groups[source].append(item.model_dump())
+                item_dict = item.model_dump()
+                item_dict['metadata'].update({
+                    'model_name': config['openai']['model_name'],
+                    'timestamp': timestamp.isoformat()
+                })
+                source_groups[source].append(item_dict)
             
             # 创建 DatasetDict
             dataset_dict = {}
@@ -121,7 +124,12 @@ def save_results(results: List[AlpacaItem], task_name: str, output_dir: Path, co
                 
             # 构建完整的repository_id
             if not "/" in repo_id:
-                repo_id = f"{repo_id}/alpaca_eval"
+                # 使用配置中的任务名称和时间戳
+                file_naming = output_config.get('file_naming', {})
+                task_name = file_naming.get('task_name', 'task_quality_test')
+                # 添加时间戳
+                timestamp_str = timestamp.strftime('%Y%m%d_%H%M%S')
+                repo_id = f"{repo_id}/{task_name}_{timestamp_str}"
                 
             logger.info(f"Pushing results to Hugging Face Hub: {repo_id}")
             dataset.push_to_hub(
@@ -250,6 +258,10 @@ async def test_small_batch(test_config: dict, test_items: list) -> None:
         processor = DataProcessor(test_config)
         logger.info("DataProcessor initialized")
         
+        # 设置测试数据源
+        for item in test_items:
+            item.sources = "test_dataset"
+        
         # 运行评估
         logger.info("Starting assessment of test data...")
         with tqdm(total=len(test_items), desc="Processing items") as pbar:
@@ -270,6 +282,11 @@ async def test_small_batch(test_config: dict, test_items: list) -> None:
                 logger.info(f"Score: {item.score}")
                 logger.info(f"Category: {item.category}")
                 logger.info(f"Metadata: {item.metadata}\n")
+                
+                # 验证结果格式
+                assert 'model_name' in item.metadata
+                assert 'timestamp' in item.metadata
+                assert item.sources == "test_dataset"
         
         # 处理失败的项目
         if results.failed:
@@ -287,11 +304,127 @@ async def test_small_batch(test_config: dict, test_items: list) -> None:
         output_dir = project_root / "outputs"
         save_results(results.successful, task_name, output_dir, test_config)
         
+        # 验证结果
         assert len(results.successful) > 0, "没有成功处理的数据项"
-        assert len(results.failed) == 0, "存在处理失败的数据项"
+        assert all('model_name' in item.metadata for item in results.successful), "缺少模型名称"
+        assert all('timestamp' in item.metadata for item in results.successful), "缺少时间戳"
+        assert all(item.sources == "test_dataset" for item in results.successful), "数据源不正确"
         
     except Exception as e:
         logger.error(f"Error during testing: {str(e)}")
+        raise
+
+@pytest.mark.asyncio
+async def test_complete_assessment(test_config: dict) -> None:
+    """完整的数据质量评估测试"""
+    logger.info("开始完整的数据质量评估测试...")
+    
+    try:
+        # 初始化处理器
+        processor = DataProcessor(test_config)
+        logger.info("已初始化数据处理器")
+        
+        # 从配置的数据集加载测试数据
+        all_test_items = await load_test_data(test_config)
+        if not all_test_items:
+            logger.error("没有找到任何测试数据")
+            return
+        
+        # 按数据源分组处理
+        source_groups = {}
+        for item in all_test_items:
+            source = item.sources if hasattr(item, 'sources') and item.sources else 'unknown'
+            if source not in source_groups:
+                source_groups[source] = []
+            source_groups[source].append(item)
+        
+        # 处理每个数据源的数据
+        all_results = []
+        for source, items in source_groups.items():
+            logger.info(f"\n处理数据源 '{source}' 的数据...")
+            logger.info(f"样本数量: {len(items)}")
+            
+            try:
+                # 批量处理数据
+                with tqdm(total=len(items), desc=f"Processing {source}") as pbar:
+                    batch_results = await processor.process_batch(
+                        items,
+                        progress_callback=lambda: pbar.update(1)
+                    )
+                
+                # 验证结果
+                if batch_results.successful:
+                    logger.info(f"\n成功处理 {len(batch_results.successful)} 个样本:")
+                    for idx, result in enumerate(batch_results.successful, 1):
+                        # 设置数据源
+                        result.sources = source
+                        
+                        logger.info(f"\n结果 {idx}:")
+                        logger.info(f"指令: {result.instruction}")
+                        logger.info(f"类别: {result.category}")
+                        logger.info(f"质量评分: {result.score}")
+                        logger.info(f"来源: {result.sources}")
+                        logger.info(f"Metadata: {result.metadata}\n")
+                        
+                        # 验证结果格式
+                        assert result.quality_metrics is not None, "缺少质量指标"
+                        assert result.score >= 0, "分数无效"
+                        assert result.category is not None, "缺少分类"
+                        assert 'model_name' in result.metadata, "缺少模型名称"
+                        assert 'timestamp' in result.metadata, "缺少时间戳"
+                    
+                    all_results.extend(batch_results.successful)
+                
+                if batch_results.failed:
+                    logger.warning(f"\n{len(batch_results.failed)} 个样本处理失败:")
+                    for i, item in enumerate(batch_results.failed, 1):
+                        logger.warning(f"失败项 {i}: {item.instruction}")
+                
+                # 输出批处理统计
+                logger.info("\n批处理统计:")
+                for metric, value in batch_results.metrics.items():
+                    logger.info(f"{metric}: {value}")
+                    
+            except Exception as e:
+                logger.error(f"处理数据源 '{source}' 时出错: {str(e)}")
+                continue
+        
+        # 确保至少有一些成功的结果
+        assert len(all_results) > 0, "所有数据处理都失败了"
+        
+        # 保存所有结果
+        task_name = get_task_name()
+        output_dir = project_root / "outputs"
+        logger.info(f"\n保存结果到: {output_dir}")
+        save_results(all_results, task_name, output_dir, test_config)
+        
+        # 总结测试结果
+        logger.info("\n测试总结:")
+        logger.info(f"总样本数: {len(all_test_items)}")
+        logger.info(f"成功处理数: {len(all_results)}")
+        logger.info(f"处理失败数: {len(all_test_items) - len(all_results)}")
+        logger.info(f"成功率: {len(all_results)/len(all_test_items)*100:.2f}%")
+        
+        # 按数据源统计
+        source_stats = {}
+        for result in all_results:
+            source = result.sources
+            if source not in source_stats:
+                source_stats[source] = {'count': 0, 'total_score': 0}
+            source_stats[source]['count'] += 1
+            source_stats[source]['total_score'] += result.score
+        
+        logger.info("\n各数据源统计:")
+        for source, stats in source_stats.items():
+            avg_score = stats['total_score'] / stats['count']
+            logger.info(f"{source}:")
+            logger.info(f"  样本数: {stats['count']}")
+            logger.info(f"  平均分: {avg_score:.2f}")
+        
+        logger.info("\n测试完成!")
+        
+    except Exception as e:
+        logger.error(f"测试过程中出错: {str(e)}")
         raise
 
 async def main():

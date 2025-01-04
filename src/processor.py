@@ -123,7 +123,7 @@ class DataProcessor:
         """创建默认的错误结果"""
         return ProcessedItem(
             id=str(time.time()),
-            source="error",
+            sources="error",
             instruction=item.instruction,
             input=item.input,
             output=item.output,
@@ -336,7 +336,7 @@ class DataProcessor:
             # 构建处理后的数据项
             processed_item = ProcessedItem(
                 id=unique_id,
-                source=dataset_name or "unknown",
+                sources=dataset_name or "unknown",  
                 instruction=item.instruction,
                 input=item.input,
                 output=item.output,
@@ -349,7 +349,8 @@ class DataProcessor:
                     'processing_time': time.time() - start_time,
                     'token_count': response[1]["total_tokens"],
                     'id': unique_id,
-                    'source': dataset_name or "unknown"
+                    'model_name': self.config['openai']['model_name'],
+                    'timestamp': time.time()
                 }
             )
             
@@ -361,7 +362,12 @@ class DataProcessor:
 
     async def process_batch(self, items: List[AlpacaItem], progress_callback=None) -> BatchResult:
         """批量处理数据"""
-        tasks = [self.process_single_item(item) for item in items]
+        tasks = []
+        for idx, item in enumerate(items):
+            # 确保每个项目都有sources字段
+            if not hasattr(item, 'sources') or not item.sources:
+                item.sources = "unknown"
+            tasks.append(self.process_single_item(item, item.sources, idx))
         
         successful = []
         failed = []

@@ -65,7 +65,7 @@ output:
   save_format: "json"  # 支持: json, jsonl, parquet
   include_metadata: true
   file_naming:
-    task_name: "quality_assessment_test"  # 任务名称
+    task_name: "task_quality_test"  # 任务名称
     include_timestamp: true  # 是否包含时间戳
     include_dataset_info: true  # 是否包含数据集信息
     include_sample_count: true  # 是否包含样本数量
