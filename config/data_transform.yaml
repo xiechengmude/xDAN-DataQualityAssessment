@@ -37,7 +37,7 @@ datasets:
     config: ""
     split: "train"
     subset: ""
-    num_samples: 20
+    num_samples: -1
     field_mapping:
       instruction: "instruction"
       input: "input"
