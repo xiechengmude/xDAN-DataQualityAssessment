@@ -90,25 +90,26 @@ class DataProcessor:
 
     def _load_config(self, config_path: str) -> Dict[str, Any]:
         """加载配置"""
-        with open(config_path, 'r') as f:
-            return yaml.safe_load(f)
+        try:
+            logger.info(f"Loading config from: {config_path}")
+            with open(config_path, 'r', encoding='utf-8') as f:
+                return yaml.safe_load(f)
+        except Exception as e:
+            logger.error(f"Failed to load config: {str(e)}")
+            raise
 
-    def _load_category_config(self):
+    def _load_category_config(self) -> Dict[str, Any]:
         """加载分类配置文件
         
         Returns:
             dict: 分类配置
         """
-        category_path = Path(self.config.get('paths', {}).get(
-            'category_config', 
-            Path(__file__).parent.parent / 'config' / 'category.yaml'
-        ))
-        
         try:
-            with open(category_path, 'r', encoding='utf-8') as f:
+            category_config_path = self.config.get('paths', {}).get('category_config', 'config/category.yaml')
+            with open(category_config_path, 'r', encoding='utf-8') as f:
                 return yaml.safe_load(f)
         except Exception as e:
-            logging.warning(f"无法加载分类配置文件 {category_path}: {e}")
+            logger.error(f"Failed to load category config: {str(e)}")
             return {
                 "version": "1.0",
                 "categories": {
@@ -121,28 +122,26 @@ class DataProcessor:
     def _create_default_result(self, item: AlpacaItem, error_msg: str, error_type: str) -> ProcessedItem:
         """创建默认的错误结果"""
         return ProcessedItem(
-            id="error",
-            source="error",
+            id=str(time.time()),
+            sources="error",
             instruction=item.instruction,
             input=item.input,
             output=item.output,
             quality_metrics={
-                "reasoning_depth": 5.0,
-                "correctness": 5.0,
-                "clarity": 5.0,
-                "context_awareness": 5.0,
-                "engagement": 5.0
+                "reasoning_depth": 0,
+                "correctness": 0,
+                "clarity": 0,
+                "context_awareness": 0,
+                "engagement": 0
             },
-            score=5.0,
-            category=DataCategory.ERROR,
-            processed_output="处理出错",
+            score=0,
+            category="ERROR",
+            processed_output=item.output,
             metadata={
                 "error": error_msg,
                 "error_type": error_type,
-                "validation_notes": [
-                    f"处理过程中出现错误: {error_type}",
-                    f"错误信息: {error_msg}"
-                ]
+                "processing_time": 0,
+                "token_count": 0
             }
         )
 
@@ -155,33 +154,17 @@ class DataProcessor:
         Returns:
             str: 评估提示
         """
-        # 获取分类信息
-        categories_info = "\n".join([
-            f"- {cat}: {info['description']} (重点关注: {info['focus']})"
-            for cat, info in self.category_config['categories'].items()
-        ])
-        
-        # 获取质量评估指标
-        metrics_info = self.config.get('quality_metrics', {})
-        metrics_desc = []
-        for metric, info in metrics_info.items():
-            weight = info.get('weight', 0.2)
-            desc = info.get('description', '')
-            metrics_desc.append(f"{metric} (权重 {weight}): {desc}")
-        
-        metrics_info = "\n".join(metrics_desc)
-        
         prompt = f"""你是一个专业的数据质量评估专家。请根据以下维度评估这条数据的质量，并以JSON格式返回评估结果。
 
 评估维度：
-{metrics_info}
+{self.config.get('quality_metrics_description', '')}
 
 可选的回答类别：
-{categories_info}
+{self._format_categories()}
 
 数据内容：
 指令: {item.instruction}
-输入: {item.input if item.input else "无"}
+输入: {item.input or '无'}
 输出: {item.output}
 
 请以下面的JSON格式返回评估结果：
@@ -201,6 +184,18 @@ class DataProcessor:
     }}
 }}"""
         return prompt
+
+    def _format_categories(self) -> str:
+        """格式化类别描述"""
+        if not self.category_config or 'categories' not in self.category_config:
+            return ""
+            
+        categories = []
+        for category, info in self.category_config['categories'].items():
+            detail = info.get('detail', '')
+            categories.append(f"- {category}: {detail}")
+            
+        return "\n".join(categories)
 
     def _calculate_weighted_score(self, quality_metrics: Dict[str, float]) -> float:
         """计算加权总分
@@ -341,7 +336,7 @@ class DataProcessor:
             # 构建处理后的数据项
             processed_item = ProcessedItem(
                 id=unique_id,
-                source=dataset_name or "unknown",
+                sources=dataset_name or "unknown",  
                 instruction=item.instruction,
                 input=item.input,
                 output=item.output,
@@ -354,7 +349,8 @@ class DataProcessor:
                     'processing_time': time.time() - start_time,
                     'token_count': response[1]["total_tokens"],
                     'id': unique_id,
-                    'source': dataset_name or "unknown"
+                    'model_name': self.config['openai']['model_name'],
+                    'timestamp': time.time()
                 }
             )
             
@@ -366,7 +362,12 @@ class DataProcessor:
 
     async def process_batch(self, items: List[AlpacaItem], progress_callback=None) -> BatchResult:
         """批量处理数据"""
-        tasks = [self.process_single_item(item) for item in items]
+        tasks = []
+        for idx, item in enumerate(items):
+            # 确保每个项目都有sources字段
+            if not hasattr(item, 'sources') or not item.sources:
+                item.sources = "unknown"
+            tasks.append(self.process_single_item(item, item.sources, idx))
         
         successful = []
         failed = []
@@ -416,16 +417,19 @@ class DataProcessor:
             "average_score": sum(quality_scores) / len(quality_scores),
             "min_score": min(quality_scores),
             "max_score": max(quality_scores),
-            "success_rate": float(len(items)) / (len(items) + len([i for i in items if not i.score]))
+            "success_rate": len([score for score in quality_scores if score > 0]) / len(quality_scores)
         }
 
     def filter_results(self, results: List[ProcessedItem]) -> List[ProcessedItem]:
         """根据配置过滤结果"""
-        min_score = self.config['dataset']['min_quality_score']
-        excluded_cats = self.config['dataset']['excluded_categories']
+        filtered = []
+        filter_config = self.config.get('filter', {})
         
-        return [
-            item for item in results
-            if (item.score >= min_score and
-                item.category not in excluded_cats)
-        ]
+        min_score = filter_config.get('min_score', 0)
+        categories = filter_config.get('categories', [])
+        
+        for item in results:
+            if item.score >= min_score and (not categories or item.category in categories):
+                filtered.append(item)
+                
+        return filtered

@@ -79,38 +79,54 @@ class DatasetManager:
     
     def push_to_hub(self, 
                    data: List[Dict[str, Any]], 
-                   dataset_name: str) -> Optional[datasets.Dataset]:
+                   dataset_name: str) -> Optional[datasets.DatasetDict]:
         """将数据推送到 Hugging Face Hub
         
         Args:
             data: 要推送的数据
-            dataset_name: 数据集名称
+            dataset_name: 数据集名称，例如 "alpaca_eval"
         
         Returns:
-            datasets.Dataset 对象，如果不推送则返回None
+            datasets.DatasetDict 对象，如果不推送则返回None
         """
         if not self.output_config["push_to_hub"]:
             return None
             
         hub_config = self.output_config["hub_config"]
+        if "repository_id" not in hub_config:
+            raise ValueError("需要在配置中提供 repository_id")
+            
         if not hub_config["token"]:
             raise ValueError("需要在配置中提供 Hugging Face token 或设置 HF_TOKEN 环境变量")
             
-        if not hub_config["repository_id"]:
-            raise ValueError("需要在配置中提供 repository_id")
-            
         # 创建数据集
-        dataset = datasets.Dataset.from_list(data)
+        dataset_dict = {}
         
+        # 根据数据源分组
+        for item in data:
+            source = item.get("sources", "default")
+            if source not in dataset_dict:
+                dataset_dict[source] = []
+            dataset_dict[source].append(item)
+            
+        # 为每个数据源创建数据集
+        full_dataset = datasets.DatasetDict()
+        for source, items in dataset_dict.items():
+            full_dataset[source] = datasets.Dataset.from_list(items)
+            
         # 推送到hub
-        dataset.push_to_hub(
-            hub_config["repository_id"],
+        repository_id = hub_config["repository_id"]
+        if not "/" in repository_id:
+            repository_id = f"{repository_id}/{dataset_name}"
+            
+        full_dataset.push_to_hub(
+            repository_id,
             token=hub_config["token"],
             private=hub_config["private"],
             commit_message=f"Update dataset: {dataset_name}"
         )
         
-        return dataset
+        return full_dataset
 
     def save_dataset(self, 
                     data: List[Dict], 

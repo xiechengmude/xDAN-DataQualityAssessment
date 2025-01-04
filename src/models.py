@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional, List, Dict, Any
 from enum import Enum
 from datetime import datetime
@@ -75,13 +75,15 @@ class EnhancedAlpacaItem(BaseModel):
     metadata: Dict[str, Any] = Field(default_factory=dict)  # 处理元数据
     sources: str = Field(default="")  # 数据来源
 
-    @validator('instruction')
+    @field_validator('instruction')
+    @classmethod
     def validate_instruction(cls, v):
         if not v.strip():
             raise ValueError("Instruction cannot be empty")
         return v.strip()
 
-    @validator('output')
+    @field_validator('output')
+    @classmethod
     def validate_output(cls, v):
         if not v.strip():
             raise ValueError("Output cannot be empty")
@@ -126,14 +128,17 @@ class AlpacaItem(BaseModel):
     instruction: str
     input: str = ""
     output: str
+    sources: str = ""  # 数据来源
 
-    @validator('instruction')
+    @field_validator('instruction')
+    @classmethod
     def validate_instruction(cls, v):
         if not v.strip():
             raise ValueError("Instruction cannot be empty")
         return v.strip()
 
-    @validator('output')
+    @field_validator('output')
+    @classmethod
     def validate_output(cls, v):
         if not v.strip():
             raise ValueError("Output cannot be empty")
@@ -142,7 +147,7 @@ class AlpacaItem(BaseModel):
 class ProcessedItem(BaseModel):
     """处理后的数据项"""
     id: str
-    source: str
+    sources: str  # 改为sources以保持一致性
     instruction: str
     input: str
     output: str
@@ -154,6 +159,7 @@ class ProcessedItem(BaseModel):
 
     @property
     def quality_score(self) -> float:
+        """计算质量得分"""
         return self.score
 
 class ImprovementSuggestion(BaseModel):

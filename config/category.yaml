@@ -3,34 +3,42 @@ categories:
   KNOWLEDGE_QA:
     description: "知识问答，包括事实性查询、概念解释和专业知识回答"
     focus: "准确性和完整性"
+    detail: "知识问答，包括事实性查询、概念解释和专业知识回答"
     
   REASONING:
     description: "推理和分析，包括逻辑推导、问题解决和决策分析"
     focus: "逻辑性和严谨性"
+    detail: "推理和分析，包括逻辑推导、问题解决和决策分析"
 
   CODE_GENERATION:
     description: "代码生成和编程相关，包括代码编写、调试和优化"
     focus: "功能性和可维护性"
+    detail: "代码生成和编程相关，包括代码编写、调试和优化"
 
   CREATIVE_WRITING:
     description: "创意写作，包括故事创作、文案写作和内容生成"
     focus: "创造性和表现力"
+    detail: "创意写作，包括故事创作、文案写作和内容生成"
 
   CONVERSATION:
     description: "对话交互，包括日常对话、客服对话和社交互动"
     focus: "自然度和共情性"
+    detail: "对话交互，包括日常对话、客服对话和社交互动"
 
   INSTRUCTION_FOLLOWING:
     description: "指令执行，包括任务执行、流程指导和步骤说明"
     focus: "准确性和可执行性"
+    detail: "指令执行，包括任务执行、流程指导和步骤说明"
 
   ANALYSIS_SUMMARY:
     description: "分析总结，包括文本摘要、数据分析和见解提取"
     focus: "重点提取和结构化"
+    detail: "分析总结，包括文本摘要、数据分析和见解提取"
 
   MULTIMODAL_UNDERSTANDING:
     description: "多模态理解，包括图像描述、视频分析和跨模态任务"
     focus: "跨模态理解和描述准确性"
+    detail: "多模态理解，包括图像描述、视频分析和跨模态任务"
 
 validation_rules:
   - "每个回答必须且只能属于一个主要类别"

@@ -1,0 +1,81 @@
+
+# OpenAI配置
+openai:
+  model_name: "deepseek-chat"
+  max_tokens: 4096
+  temperature: 0.7
+  api_key: "sk-cUaGu4E02RDTCxnnC3398860D5944953A4Fa9c5dA13aF93e"
+  api_base: "http://35.240.173.116:7220/v1"
+
+
+  #claude-3-5-sonnet-20241022
+  #sk-eiiCBAE7Na0jferWf4zLMLedkT3HjsUgvbnlJtUJvTa9fwY2
+
+# 并发配置
+concurrency:
+  max_concurrent_requests: 50
+  batch_size: 100
+  request_timeout: 60
+  max_retries: 3
+  retry_delay: 1
+
+# 速率限制
+rate_limits:
+  tokens_per_minute: 10000
+  requests_per_minute: 10
+
+# 数据集配置
+datasets:
+  # 可以配置多个数据集
+  - name: "tatsu-lab/alpaca"  # 数据集名称
+    config: ""  # 数据集配置名称
+    split: "train"  # 数据集分片
+    subset: ""  # 数据集子集
+    num_samples: 5  # 加载的样本数量，-1表示全部加载
+    field_mapping:  # 字段映射配置
+      instruction: "instruction"
+      input: "input"
+      output: "output"
+    
+  - name: "yahma/alpaca-cleaned"
+    config: ""
+    split: "train"
+    subset: ""
+    num_samples: 5
+    field_mapping:
+      instruction: "instruction"
+      input: ""
+      output: "output"
+
+# 数据集通用配置
+dataset_common:
+  hf_cache_dir: "~/.cache/huggingface/datasets"  # 缓存目录
+  shuffle_seed: 42  # 随机抽样的种子
+  combine_datasets: true  # 是否合并所有数据集
+
+# 输出配置
+output:
+  base_dir: "outputs"  # 基础输出目录
+  save_local: true  # 是否保存到本地
+  push_to_hub: true  # 是否推送到Hugging Face Hub
+  hub_config:
+    repository_id: "xDAN2099"  # Hugging Face Hub 仓库ID
+    private: true  # 是否为私有仓库
+    token: "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"  # Hugging Face Hub token
+  save_format: "json"  # 支持: json, jsonl, parquet
+  include_metadata: true
+  file_naming:
+    task_name: "task_quality_test"  # 任务名称
+    include_timestamp: true  # 是否包含时间戳
+    include_dataset_info: true  # 是否包含数据集信息
+    include_sample_count: true  # 是否包含样本数量
+
+# 路径配置
+paths:
+  category_config: "config/category.yaml"
+
+# 日志配置
+logging:
+  level: "INFO"
+  save_path: "logs"
+  file_name: "processing.log"
