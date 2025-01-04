@@ -18,6 +18,12 @@ output:
     token: ${HUGGINGFACE_TOKEN}  # Hugging Face Hub token
   save_format: "json"  # 支持: json, jsonl, parquet
   include_metadata: true
+  file_naming:
+    task_name: "data_transform"  # 任务名称
+    include_timestamp: true  # 是否包含时间戳
+    include_dataset_info: true  # 是否包含数据集信息
+    include_sample_count: true  # 是否包含样本数量
+  file_path: "${output.base_dir}/refined_alpaca.json"  # 默认输出文件路径
 
 processing:
   validate_input: true
@@ -97,7 +103,3 @@ transform:
     solution:
       required: true
       use_original: true
-
-huggingface:
-  repository_id: "xiechengmude/refined-alpaca"  # 你的HuggingFace仓库ID
-  token: ${HUGGINGFACE_TOKEN}  # 从环境变量读取token
