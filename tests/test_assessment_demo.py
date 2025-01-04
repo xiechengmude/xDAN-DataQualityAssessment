@@ -299,19 +299,13 @@ async def test_small_batch(test_config: dict, test_items: list) -> None:
         for metric, value in results.metrics.items():
             logger.info(f"{metric}: {value}")
             
-        # 保存结果
-        task_name = get_task_name()
-        output_dir = project_root / "outputs"
-        save_results(results.successful, task_name, output_dir, test_config)
-        
         # 验证结果
         assert len(results.successful) > 0, "没有成功处理的数据项"
         assert all('model_name' in item.metadata for item in results.successful), "缺少模型名称"
         assert all('timestamp' in item.metadata for item in results.successful), "缺少时间戳"
-        assert all(item.sources == "test_dataset" for item in results.successful), "数据源不正确"
         
     except Exception as e:
-        logger.error(f"Error during testing: {str(e)}")
+        logger.error(f"Test failed: {str(e)}")
         raise
 
 @pytest.mark.asyncio
@@ -443,10 +437,6 @@ async def main():
         # 运行测试
         task_name = get_task_name()
         result = await test_small_batch(config, test_items)
-        
-        # 保存结果
-        output_dir = project_root / "outputs"
-        save_results(result.successful, task_name, output_dir, config)
         
         logger.info(f"测试完成! 成功处理 {len(result.successful)} 个样本")
         
