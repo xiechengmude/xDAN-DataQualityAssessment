@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# 获取脚本所在目录的绝对路径
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+PROJECT_ROOT="$( cd "$SCRIPT_DIR/.." && pwd )"
+
 # 检查是否提供了任务ID
 if [ -z "$1" ]; then
     echo "请提供任务ID"
@@ -8,7 +12,7 @@ if [ -z "$1" ]; then
 fi
 
 TASK_ID=$1
-TASK_DIR="outputs/${TASK_ID}"
+TASK_DIR="${PROJECT_ROOT}/outputs/${TASK_ID}"
 PID_FILE="${TASK_DIR}/task.pid"
 LOG_FILE="${TASK_DIR}/task.log"
 CONFIG_FILE="${TASK_DIR}/task_config.yaml"
@@ -30,6 +34,13 @@ PID=$(cat "$PID_FILE")
 # 检查进程是否在运行
 if ps -p $PID > /dev/null; then
     STATUS="运行中"
+    # 获取CPU和内存使用情况
+    if command -v ps >/dev/null 2>&1; then
+        CPU_MEM=$(ps -p $PID -o %cpu,%mem | tail -n 1)
+        CPU=$(echo $CPU_MEM | awk '{print $1}')
+        MEM=$(echo $CPU_MEM | awk '{print $2}')
+        STATUS="${STATUS} (CPU: ${CPU}%, MEM: ${MEM}%)"
+    fi
 else
     STATUS="已完成"
 fi

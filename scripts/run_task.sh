@@ -1,10 +1,14 @@
 #!/bin/bash
 
+# 获取脚本所在目录的绝对路径
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+PROJECT_ROOT="$( cd "$SCRIPT_DIR/.." && pwd )"
+
 # 获取当前时间作为任务ID
 TASK_ID=$(date +%Y%m%d_%H%M%S)
-TASK_DIR="outputs/${TASK_ID}"
+TASK_DIR="${PROJECT_ROOT}/outputs/${TASK_ID}"
 LOG_FILE="${TASK_DIR}/task.log"
-CONFIG_FILE=${1:-"config/default_config.yaml"}
+CONFIG_FILE=${1:-"${PROJECT_ROOT}/config/default_config.yaml"}
 
 # 创建输出目录
 mkdir -p "$TASK_DIR"
@@ -15,7 +19,8 @@ echo "配置文件: ${CONFIG_FILE}"
 echo ""
 
 # 运行Python脚本并将输出重定向到日志文件
-nohup python scripts/run_assessment.py --config "${CONFIG_FILE}" > "${LOG_FILE}" 2>&1 &
+cd "${PROJECT_ROOT}"
+nohup python "${SCRIPT_DIR}/run_assessment.py" --config "${CONFIG_FILE}" > "${LOG_FILE}" 2>&1 &
 
 # 获取进程ID
 PID=$!
@@ -34,4 +39,4 @@ echo "使用以下命令查看日志:"
 echo "tail -f ${LOG_FILE}"
 echo ""
 echo "使用以下命令检查任务状态:"
-echo "./scripts/check_task.sh ${TASK_ID}"
+echo "${SCRIPT_DIR}/check_task.sh ${TASK_ID}"
