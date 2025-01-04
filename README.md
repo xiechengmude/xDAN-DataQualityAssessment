@@ -110,42 +110,50 @@ dataset:
 
 ## 使用方法
 
-本系统提供了三种主要的使用方式：
+本系统提供了两种主要的使用方式：
 
-### 1. 基本用法
-使用默认配置处理数据集：
+### 1. 使用脚本运行（推荐）
+
+使用 `run_task.sh` 脚本可以在后台运行评估任务，并提供任务管理功能：
+
+#### 基本用法
+使用默认配置运行：
 ```bash
-python -m src.cli process-dataset
+./scripts/run_task.sh
 ```
 
-### 2. 指定数据集
-直接指定要处理的数据集和分片：
+#### 指定配置文件
 ```bash
-python -m src.cli process-dataset \
-    --dataset-name "tatsu-lab/alpaca" \
-    --dataset-split "train"
+./scripts/run_task.sh config/test_config.yaml
 ```
 
-### 3. 自定义配置
-使用自定义配置文件和输出目录：
+#### 任务管理
+查看任务状态：
 ```bash
-python -m src.cli process-dataset \
-    --config-path "path/to/config.yaml" \
-    --output-dir "path/to/output"
+./scripts/check_task.sh [任务ID]
 ```
 
-### 参数说明
+查看任务日志：
+```bash
+tail -f outputs/[任务ID]/task.log
+```
 
-- `--config-path`: 配置文件路径，默认为 "config/default_config.yaml"
-- `--output-dir`: 输出目录，默认使用配置文件中的设置
-- `--dataset-name`: 数据集名称，例如："tatsu-lab/alpaca"
-- `--dataset-split`: 数据集分片，例如："train"
+### 2. 直接运行Python脚本
+
+如果需要更细粒度的控制，可以直接运行Python脚本：
+
+```bash
+python scripts/run_assessment.py --config config/default_config.yaml
+```
 
 ### 输出文件
 
-处理后的数据将保存为两个文件：
+处理后的数据将保存在 `outputs/[任务ID]` 目录下：
 - `successful.jsonl`: 成功处理的数据
 - `failed.jsonl`: 处理失败的数据
+- `task.log`: 任务日志
+- `task.pid`: 任务进程ID
+- `task_config.yaml`: 任务使用的配置文件副本
 
 每个处理后的数据项包含：
 ```json
@@ -178,6 +186,20 @@ python -m src.cli process-dataset \
   }
 }
 ```
+
+### 任务管理功能
+
+1. **任务状态查看**
+   - 使用 `check_task.sh` 脚本查看任务状态
+   - 显示任务是否运行中、CPU使用率、内存使用等信息
+
+2. **日志查看**
+   - 所有任务日志保存在 `outputs/[任务ID]/task.log`
+   - 使用 `tail -f` 命令实时查看日志
+
+3. **配置管理**
+   - 每个任务的配置文件会被复制到任务目录
+   - 方便追踪和复现任务配置
 
 ## 场景分类
 
