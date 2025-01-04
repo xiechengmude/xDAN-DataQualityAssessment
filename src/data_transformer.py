@@ -134,24 +134,30 @@ class DataTransformer:
         logger.info(f"Saved {len(items)} transformed items to {output_path}")
 
     def push_to_hub(self, file_path: Path) -> None:
-        """Push results to HuggingFace Hub."""
+        """Push results to HuggingFace Hub using datasets."""
         try:
-            from huggingface_hub import HfApi
-            api = HfApi()
+            from datasets import Dataset, Features, Value, load_dataset
+            import json
             
             # 从配置中获取repository_id
             repo_id = self.config.get('huggingface', {}).get('repository_id')
             if not repo_id:
                 raise ValueError("Repository ID not found in config")
             
-            # 上传文件
-            api.upload_file(
-                path_or_fileobj=str(file_path),
-                path_in_repo=file_path.name,
-                repo_id=repo_id,
-                repo_type="dataset"
+            # 读取JSON文件
+            with open(file_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            
+            # 将数据转换为Dataset格式
+            dataset = Dataset.from_list(data)
+            
+            # 推送到hub
+            dataset.push_to_hub(
+                repo_id,
+                private=False,
+                token=self.config.get('huggingface', {}).get('token')
             )
-            logger.info(f"Successfully pushed {file_path.name} to {repo_id}")
+            logger.info(f"Successfully pushed dataset to {repo_id}")
             
         except Exception as e:
             logger.error(f"Error pushing to hub: {str(e)}")
