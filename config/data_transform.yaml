@@ -104,3 +104,7 @@ transform:
     solution:
       required: true
       use_original: true
+
+huggingface:
+  repository_id: "xiechengmude/refined-alpaca"  # 你的HuggingFace仓库ID
+  token: ${HUGGINGFACE_TOKEN}  # 从环境变量读取token

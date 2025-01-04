@@ -124,3 +124,34 @@ class DataTransformer:
             json.dump(data, f, ensure_ascii=False, indent=2)
         
         logger.info(f"Saved {len(items)} transformed items to {output_path}")
+
+    def save_results(self, items: List[RefinedAlpacaItem], output_path: Path) -> None:
+        """Save transformed items to a JSON file."""
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(output_path, 'w', encoding='utf-8') as f:
+            json.dump([item.dict() for item in items], f, ensure_ascii=False, indent=2)
+        logger.info(f"Saved {len(items)} transformed items to {output_path}")
+
+    def push_to_hub(self, file_path: Path) -> None:
+        """Push results to HuggingFace Hub."""
+        try:
+            from huggingface_hub import HfApi
+            api = HfApi()
+            
+            # 从配置中获取repository_id
+            repo_id = self.config.get('huggingface', {}).get('repository_id')
+            if not repo_id:
+                raise ValueError("Repository ID not found in config")
+            
+            # 上传文件
+            api.upload_file(
+                path_or_fileobj=str(file_path),
+                path_in_repo=file_path.name,
+                repo_id=repo_id,
+                repo_type="dataset"
+            )
+            logger.info(f"Successfully pushed {file_path.name} to {repo_id}")
+            
+        except Exception as e:
+            logger.error(f"Error pushing to hub: {str(e)}")
+            raise
