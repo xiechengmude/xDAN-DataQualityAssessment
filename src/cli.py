@@ -6,12 +6,22 @@ from rich.table import Table
 import time
 import logging
 from typing import Optional
+import os
 
 from .data_loader import DataLoader
 from .processor import DataProcessor
 
 app = typer.Typer()
 console = Console()
+
+def get_default_config_path() -> Path:
+    """获取默认配置文件路径"""
+    # 优先使用环境变量中的配置路径
+    if 'DQA_CONFIG_PATH' in os.environ:
+        return Path(os.environ['DQA_CONFIG_PATH'])
+    
+    # 否则使用相对于项目根目录的默认路径
+    return Path(__file__).parent.parent / 'config' / 'default_config.yaml'
 
 def setup_logging(config_path: str):
     """设置日志"""
@@ -36,8 +46,8 @@ def setup_logging(config_path: str):
 @app.command()
 def process_dataset(
     config_path: Path = typer.Option(
-        "config/default_config.yaml",
-        help="配置文件路径"
+        None,
+        help="配置文件路径，如果不指定则使用默认路径"
     ),
     output_dir: Optional[Path] = typer.Option(
         None,
@@ -55,6 +65,8 @@ def process_dataset(
     """处理数据集"""
     try:
         # 设置日志
+        if config_path is None:
+            config_path = get_default_config_path()
         setup_logging(config_path)
         
         # 初始化组件

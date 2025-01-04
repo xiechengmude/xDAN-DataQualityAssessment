@@ -12,9 +12,9 @@ from datetime import datetime
 from typing import List, Optional
 from datasets import load_dataset
 
-# Add project root to Python path
-project_root = Path(__file__).parent.parent
-sys.path.append(str(project_root))
+# Add parent directory to Python path for relative imports
+parent_dir = Path(__file__).parent.parent
+sys.path.insert(0, str(parent_dir))
 
 from src.processor import DataProcessor
 from src.models import AlpacaItem, BatchResult
@@ -26,8 +26,20 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+def get_default_config_path() -> Path:
+    """获取默认配置文件路径"""
+    # 优先使用环境变量中的配置路径
+    if 'DQA_CONFIG_PATH' in os.environ:
+        return Path(os.environ['DQA_CONFIG_PATH'])
+    
+    # 否则使用相对于项目根目录的默认路径
+    return parent_dir / 'config' / 'default_config.yaml'
+
 def load_config(config_path: Path) -> dict:
     """Load configuration file"""
+    if config_path is None:
+        config_path = get_default_config_path()
+        
     logger.info(f"Loading config from: {config_path}")
     with open(config_path, 'r', encoding='utf-8') as f:
         return yaml.safe_load(f)
