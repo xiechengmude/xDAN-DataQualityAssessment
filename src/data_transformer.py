@@ -1,17 +1,18 @@
-from typing import Dict, List, Optional
-from pathlib import Path
-import datasets
-from tqdm import tqdm
-import yaml
-import logging
+import asyncio
 import json
+import logging
+from pathlib import Path
+from typing import List, Dict, Optional
 from openai import AsyncOpenAI
+import yaml
+from tqdm import tqdm
 from datetime import datetime
-from .models import AlpacaItem, RefinedAlpacaItem
+
+from .data_types import AlpacaItem, RefinedAlpacaItem
 from .data_loader import DataLoader, DatasetConfig
 from .data_types import AlpacaItem, RefinedAlpacaItem
-import asyncio
 
+# 配置日志记录
 logger = logging.getLogger(__name__)
 
 class DataTransformer:
@@ -42,48 +43,48 @@ class DataTransformer:
             return f.read()
     
     async def refine_output(self, item: AlpacaItem) -> str:
-        """将原始输出转换为结构化格式"""
-        prompt = f"""请将以下问答对转换为结构化的分析格式，要求简洁明确。
+        """Transform the original output into a structured format"""
+        prompt = f"""Please convert the following Q&A pair into a structured analysis format. Be concise and clear.
 
-问题：{item.instruction}
-{f'上下文：{item.input}' if item.input else ''}
-原始答案：{item.output}
+Question: {item.instruction}
+{f'Context: {item.input}' if item.input else ''}
+Original Answer: {item.output}
 
-请按照以下结构重新组织答案：
+Please reorganize the answer according to the following structure (respond in the same language as the question!):
 
 <Analyze>
-- 完整保留原始问题
-- 提取关键信息和概念
-- 明确问题类型和目标
-- 列出已知条件和要求
+- Preserve the original question completely
+- Extract key information and concepts
+- Clarify the question type and objective
+- List known conditions and requirements
 </Analyze>
 
 <Solve>
-- 说明解决思路和理由
-- 列出详细的解决步骤
-- 展示完整的推理过程
-- 记录关键的中间结果
+- Explain solution approach and reasoning
+- List detailed solution steps
+- Show complete reasoning process
+- Record key intermediate results
 </Solve>
 
 <Verify>
-- 检查步骤的正确性
-- 验证是否满足条件
-- 评估结果的合理性
-- 考虑优化的空间
+- Check correctness of steps
+- Verify if conditions are met
+- Evaluate reasonableness of results
+- Consider room for optimization
 </Verify>
 
 <Solution>
-[这里请直接以对话的方式回答用户，语气友好自然，不需要列举要求。把前面分析的结果转化为一个完整、清晰、易懂的回答。就像您在跟用户面对面交谈一样。]
+[Here, please respond to the user in a conversational manner, with a friendly tone. Transform the previous analysis into a complete, clear, and easy-to-understand answer. Communicate as if you're having a face-to-face conversation.]
 </Solution>
 
-请确保前三个部分保持分析的严谨性，最后的Solution部分采用对话的方式直接回答用户的问题。
+Please maintain analytical rigor in the first three parts, and use a conversational style in the Solution part to directly answer the user's question.
 """
 
         try:
-            # 从配置中获取超时设置
+            # Get timeout settings from config
             timeout = self.config.get('concurrency', {}).get('request_timeout', 30)
             
-            # 添加重试逻辑
+            # Add retry logic
             max_retries = self.config.get('concurrency', {}).get('max_retries', 3)
             retry_delay = self.config.get('concurrency', {}).get('retry_delay', 1)
             
@@ -107,7 +108,7 @@ class DataTransformer:
             logger.error(f"Error in refine_output: {str(e)}")
             raise
     
-    async def transform_item(self, alpaca_item: AlpacaItem) -> RefinedAlpacaItem:
+    async def transform_item(self, alpaca_item: AlpacaItem, dataset_name: str = None) -> RefinedAlpacaItem:
         """Transform a single data item to include structured output."""
         try:
             # 验证输入
@@ -122,18 +123,20 @@ class DataTransformer:
                 item=alpaca_item,
                 refined_output=refined_output,
                 source=self.config.get('task_name', 'data_transform'),
-                model_name=self.config.get('openai', {}).get('model_name', 'unknown')
+                model_name=self.config.get('openai', {}).get('model_name', 'unknown'),
+                original_dataset=dataset_name
             )
         except Exception as e:
             logger.error(f"Error transforming item: {str(e)}")
             raise
     
-    async def transform_dataset(self, items: List[AlpacaItem] = None) -> List[RefinedAlpacaItem]:
+    async def transform_dataset(self, items: List[AlpacaItem] = None, dataset_name: str = None) -> List[RefinedAlpacaItem]:
         """Transform the entire dataset."""
         try:
             # 如果没有提供items，则从数据加载器获取
             if items is None:
                 items = self.data_loader.load_and_convert()
+                dataset_name = self.data_loader.current_dataset_name
             
             logger.info(f"Starting transformation of {len(items)} items")
             
@@ -144,7 +147,7 @@ class DataTransformer:
             # 使用tqdm显示进度
             for i in tqdm(range(0, len(items), batch_size), desc="Transforming data"):
                 batch = items[i:i + batch_size]
-                batch_tasks = [self.transform_item(item) for item in batch]
+                batch_tasks = [self.transform_item(item, dataset_name) for item in batch]
                 batch_results = await asyncio.gather(*batch_tasks, return_exceptions=True)
                 
                 # 处理结果

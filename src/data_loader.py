@@ -7,8 +7,9 @@ import logging
 import os
 import random
 import time
+from datetime import datetime
 
-from .models import AlpacaItem
+from .data_types import AlpacaItem
 
 logger = logging.getLogger(__name__)
 
@@ -23,13 +24,14 @@ class DatasetConfig:
         self.field_mapping = config['field_mapping']
 
 class DataLoader:
-    """加载和处理数据集的类。"""
+    """数据加载器，用于加载和转换数据。"""
     
     def __init__(self, config):
-        """初始化数据加载器。"""
+        """初始化加载器。"""
         self.config = config if isinstance(config, dict) else self._load_config(config)
         self.dataset_configs = [DatasetConfig(cfg) for cfg in self.config['datasets']]
         self.common_config = self.config['dataset_common']
+        self.current_dataset_name = None
         self._setup_hf_cache()
 
     def _load_config(self, config_path: str) -> Dict[str, Any]:
@@ -51,97 +53,92 @@ class DataLoader:
             os.environ['HF_HOME'] = cache_dir
             Path(cache_dir).mkdir(parents=True, exist_ok=True)
 
-    def load_single_dataset(self, config: DatasetConfig) -> Dataset:
-        """加载单个数据集"""
-        logger.info(
-            f"Loading dataset: {config.name}, "
-            f"config: {config.config or 'default'}, "
-            f"split: {config.split}, subset: {config.subset or 'None'}"
-        )
-
-        # 构建加载参数
-        load_params = {
-            "path": config.name,
-            "split": config.split,
-        }
+    def load_and_convert(self) -> List[AlpacaItem]:
+        """加载并转换所有数据集。"""
+        all_items = []
         
-        if config.config:
-            load_params["name"] = config.config
+        # 加载每个配置的数据集
+        for dataset_config in self.dataset_configs:
+            self.current_dataset_name = dataset_config.name
+            items = self._load_dataset(dataset_config)
+            converted_items = self._convert_to_alpaca(items, dataset_config)
+            all_items.extend(converted_items)
             
-        if config.subset:
-            if config.config:
-                load_params["name"] = f"{config.config}/{config.subset}"
-            else:
-                load_params["name"] = config.subset
-
+        logger.info(f"Total items loaded and converted: {len(all_items)}")
+        return all_items
+    
+    def _load_dataset(self, dataset_config: DatasetConfig) -> Dataset:
+        """加载单个数据集。"""
         try:
-            dataset = load_dataset(**load_params)
+            logger.info(
+                f"Loading dataset: {dataset_config.name}, "
+                f"config: {dataset_config.config or 'default'}, "
+                f"split: {dataset_config.split}, subset: {dataset_config.subset or 'None'}"
+            )
+
+            # 构建加载参数
+            load_params = {
+                "path": dataset_config.name,
+                "split": dataset_config.split,
+            }
             
-            # 验证字段映射
-            self._validate_field_mapping(dataset, config.field_mapping)
+            if dataset_config.config:
+                load_params["name"] = dataset_config.config
+                
+            if dataset_config.subset:
+                if dataset_config.config:
+                    load_params["name"] = f"{dataset_config.config}/{dataset_config.subset}"
+                else:
+                    load_params["name"] = dataset_config.subset
+
+            # 加载数据集
+            dataset = load_dataset(**load_params, cache_dir=self.common_config.get('hf_cache_dir', None))
             
-            # 随机抽样
-            if config.num_samples > 0 and config.num_samples < len(dataset):
-                dataset = dataset.shuffle(seed=self.common_config['shuffle_seed'])
-                dataset = dataset.select(range(config.num_samples))
+            # 如果指定了样本数量，则随机选择
+            if dataset_config.num_samples > 0:
+                dataset = dataset.shuffle(seed=self.common_config.get('shuffle_seed', 42))
+                dataset = dataset.select(range(dataset_config.num_samples))
             
-            logger.info(f"Successfully loaded {len(dataset)} items from {config.name}")
+            logger.info(f"Successfully loaded {len(dataset)} items from {dataset_config.name}")
             return dataset
             
         except Exception as e:
-            logger.error(f"Failed to load dataset {config.name}: {e}")
+            logger.error(f"Error loading dataset {dataset_config.name}: {str(e)}")
             raise
-
-    def _validate_field_mapping(self, dataset: Dataset, field_mapping: Dict[str, str]):
-        """验证字段映射是否有效"""
-        dataset_columns = dataset.column_names
-        for field, mapped_name in field_mapping.items():
-            if mapped_name and mapped_name not in dataset_columns:
-                raise ValueError(
-                    f"Mapped field '{mapped_name}' not found in dataset. "
-                    f"Available columns: {dataset_columns}"
-                )
-
-    def convert_to_alpaca_format(self, 
-                               dataset: Dataset, 
-                               field_mapping: Dict[str, str]) -> List[AlpacaItem]:
-        """将数据集转换为AlpacaItem格式"""
-        items = []
-        for row in dataset:
-            try:
-                item = AlpacaItem(
+    
+    def _convert_to_alpaca(self, dataset: Dataset, dataset_config: DatasetConfig) -> List[AlpacaItem]:
+        """将数据集转换为Alpaca格式。"""
+        try:
+            converted_items = []
+            field_mapping = dataset_config.field_mapping
+            
+            for row in dataset:
+                # 创建基础元数据
+                metadata = {
+                    'dataset_name': dataset_config.name,
+                    'timestamp': datetime.now().strftime("%Y%m%d_%H%M%S")
+                }
+                
+                # 添加其他可能的元数据
+                for key, value in row.items():
+                    if key not in field_mapping.values():
+                        metadata[key] = value
+                
+                # 创建AlpacaItem
+                alpaca_item = AlpacaItem(
                     instruction=row[field_mapping['instruction']],
-                    input=row[field_mapping['input']] if field_mapping.get('input') else "",
-                    output=row[field_mapping['output']]
+                    input=row.get(field_mapping['input'], '') if field_mapping.get('input') else None,
+                    output=row[field_mapping['output']],
+                    metadata=metadata
                 )
-                items.append(item)
-            except Exception as e:
-                logger.warning(f"Failed to convert row: {row}. Error: {e}")
-                continue
-        
-        logger.info(f"Converted {len(items)} items to AlpacaItem format")
-        return items
-
-    def load_and_convert(self) -> List[AlpacaItem]:
-        """加载并转换所有配置的数据集"""
-        all_items = []
-        
-        for dataset_config in self.dataset_configs:
-            try:
-                dataset = self.load_single_dataset(dataset_config)
-                items = self.convert_to_alpaca_format(dataset, dataset_config.field_mapping)
-                all_items.extend(items)
-            except Exception as e:
-                logger.error(f"Failed to process dataset {dataset_config.name}: {e}")
-                continue
-        
-        if self.common_config.get('combine_datasets', True):
-            # 打乱合并后的数据
-            random.seed(self.common_config['shuffle_seed'])
-            random.shuffle(all_items)
-        
-        logger.info(f"Total items loaded and converted: {len(all_items)}")
-        return all_items
+                converted_items.append(alpaca_item)
+            
+            logger.info(f"Converted {len(converted_items)} items to AlpacaItem format")
+            return converted_items
+            
+        except Exception as e:
+            logger.error(f"Error converting dataset to Alpaca format: {str(e)}")
+            raise
 
     def generate_output_filename(self, data_length: int) -> str:
         """生成输出文件名"""
