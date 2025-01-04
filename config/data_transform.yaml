@@ -1,0 +1,106 @@
+task_name: data_transform
+description: Transform Alpaca format dataset to structured prompt format
+
+input:
+  format: alpaca
+  fields:
+    - instruction
+    - input
+    - output
+
+output:
+  format: structured_prompt
+  template: system_long_cot_analysis
+  components:
+    - Analyze
+    - Solve
+    - Verify
+    - Solution
+
+processing:
+  validate_input: true
+  preserve_original: true
+  add_metadata: true
+
+openai:
+  model_name: "deepseek-chat"
+  max_tokens: 8192
+  temperature: 0.7
+  api_key: "sk-cUaGu4E02RDTCxnnC3398860D5944953A4Fa9c5dA13aF93e"
+  api_base: "http://35.240.173.116:7220/v1"
+
+concurrency:
+  max_concurrent_requests: 50
+  batch_size: 200
+  request_timeout: 60
+  max_retries: 3
+  retry_delay: 1
+
+rate_limits:
+  tokens_per_minute: 10000
+  requests_per_minute: 1000
+
+datasets:
+  - name: "tatsu-lab/alpaca"
+    config: ""
+    split: "train"
+    subset: ""
+    num_samples: 5
+    field_mapping:
+      instruction: "instruction"
+      input: "input"
+      output: "output"
+    
+  - name: "yahma/alpaca-cleaned"
+    config: ""
+    split: "train"
+    subset: ""
+    num_samples: 5
+    field_mapping:
+      instruction: "instruction"
+      input: ""
+      output: "output"
+
+dataset_common:
+  hf_cache_dir: "~/.cache/huggingface/datasets"
+  shuffle_seed: 42
+  combine_datasets: true
+
+output:
+  save_format: "json"
+  template: "system_long_cot_analysis"
+  file_naming:
+    task_name: "data_transform"
+    include_dataset_info: true
+    include_sample_count: true
+    include_timestamp: true
+
+transform:
+  validate_input: true
+  preserve_original: true
+  add_metadata: true
+  components:
+    analyze:
+      required: true
+      use_llm: false
+      template: |
+        - Key aspects identified
+        - Scope defined
+        - Evaluation criteria established
+    solve:
+      required: true
+      use_llm: false
+      template: |
+        - Systematic examination
+        - Evidence provided
+        - Multiple perspectives considered
+    verify:
+      required: true
+      use_llm: false
+      template: |
+        - Comprehensiveness checked
+        - Arguments validated
+        - Objectivity assessed
+    solution:
+      required: true
+      use_original: true
