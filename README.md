@@ -230,6 +230,91 @@ python scripts/run_assessment.py --config config/default_config.yaml
    - 错误日志
    - 结果分类
 
+## 数据转换功能
+
+### 配置文件
+
+数据转换的配置在 `config/data_transform.yaml` 中定义：
+
+```yaml
+openai:
+  model_name: "deepseek-chat"
+  max_tokens: 8192
+  temperature: 0.7
+  api_key: "your-api-key"
+  api_base: "your-api-base"
+
+concurrency:
+  max_concurrent_requests: 50
+  batch_size: 200
+  request_timeout: 60
+  max_retries: 3
+  retry_delay: 1
+
+rate_limits:
+  tokens_per_minute: 10000
+  requests_per_minute: 1000
+
+datasets:
+  - name: "tatsu-lab/alpaca"
+    config: "default"
+    split: "train"
+    subset: null
+    num_samples: 5
+  - name: "yahma/alpaca-cleaned"
+    config: "default"
+    split: "train"
+    subset: null
+    num_samples: 5
+```
+
+### 运行数据转换
+
+使用以下命令运行数据转换：
+
+```bash
+# 使用默认配置文件
+./scripts/transform_data.sh
+
+# 使用自定义配置文件
+./scripts/transform_data.sh --config config/custom_transform.yaml
+```
+
+### 转换结果
+
+转换后的数据将按照以下结构组织：
+
+```json
+{
+  "instruction": "原始问题",
+  "input": "输入上下文（如果有）",
+  "output": "原始答案",
+  "refined_output": {
+    "<Analyze>": [
+      "完整保留原始问题",
+      "提取关键信息和概念",
+      "明确问题类型和目标",
+      "列出已知条件和要求"
+    ],
+    "<Solve>": [
+      "说明解决思路和理由",
+      "列出详细的解决步骤",
+      "展示完整的推理过程",
+      "记录关键的中间结果"
+    ],
+    "<Verify>": [
+      "检查步骤的正确性",
+      "验证是否满足条件",
+      "评估结果的合理性",
+      "考虑优化的空间"
+    ],
+    "<Solution>": "面向用户的友好回答"
+  }
+}
+```
+
+转换后的数据将保存在 `outputs` 目录下，文件名可在配置文件中指定。
+
 ## 注意事项
 
 1. 确保有足够的API配额
