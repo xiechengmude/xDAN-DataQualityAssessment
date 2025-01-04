@@ -16,10 +16,11 @@ logger = logging.getLogger(__name__)
 class DataTransformer:
     """Transform Alpaca format data to include structured output."""
     
-    def __init__(self, config_path: str):
-        self.config = self._load_config(config_path)
+    def __init__(self, config):
+        """Initialize the transformer."""
+        self.config = config if isinstance(config, dict) else self._load_config(config)
         self.template = self._load_template()
-        self.data_loader = DataLoader(config_path)
+        self.data_loader = DataLoader(self.config)
         self.client = AsyncOpenAI(
             api_key=self.config['openai']['api_key'],
             base_url=self.config['openai']['api_base']
