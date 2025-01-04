@@ -105,7 +105,7 @@ class DataProcessor:
             dict: 分类配置
         """
         try:
-            category_config_path = self.config.get('category_config_path', 'config/categories.yaml')
+            category_config_path = self.config.get('paths', {}).get('category_config', 'config/category.yaml')
             with open(category_config_path, 'r', encoding='utf-8') as f:
                 return yaml.safe_load(f)
         except Exception as e:
@@ -153,7 +153,7 @@ class DataProcessor:
 {self.config.get('quality_metrics_description', '')}
 
 可选的回答类别：
-{self.category_config.get('categories_description', '')}
+{self._format_categories()}
 
 数据内容：
 指令: {item.instruction}
@@ -177,6 +177,18 @@ class DataProcessor:
     }}
 }}"""
         return prompt
+
+    def _format_categories(self) -> str:
+        """格式化类别描述"""
+        if not self.category_config or 'categories' not in self.category_config:
+            return ""
+            
+        categories = []
+        for category, info in self.category_config['categories'].items():
+            detail = info.get('detail', '')
+            categories.append(f"- {category}: {detail}")
+            
+        return "\n".join(categories)
 
     def _calculate_weighted_score(self, quality_metrics: Dict[str, float]) -> float:
         """计算加权总分
