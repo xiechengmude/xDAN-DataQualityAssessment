@@ -90,7 +90,6 @@ class DataProcessor:
 
     def _load_config(self, config_path: str) -> Dict[str, Any]:
         """加载配置"""
-<<<<<<< HEAD
         try:
             logger.info(f"Loading config from: {config_path}")
             with open(config_path, 'r', encoding='utf-8') as f:
@@ -100,36 +99,17 @@ class DataProcessor:
             raise
 
     def _load_category_config(self) -> Dict[str, Any]:
-=======
-        with open(config_path, 'r') as f:
-            return yaml.safe_load(f)
-
-    def _load_category_config(self):
->>>>>>> 585f086 (Initial commit: Add data quality assessment functionality)
         """加载分类配置文件
         
         Returns:
             dict: 分类配置
         """
-<<<<<<< HEAD
         try:
             category_config_path = self.config.get('paths', {}).get('category_config', 'config/category.yaml')
             with open(category_config_path, 'r', encoding='utf-8') as f:
                 return yaml.safe_load(f)
         except Exception as e:
             logger.error(f"Failed to load category config: {str(e)}")
-            return {}
-=======
-        category_path = Path(self.config.get('paths', {}).get(
-            'category_config', 
-            Path(__file__).parent.parent / 'config' / 'category.yaml'
-        ))
-        
-        try:
-            with open(category_path, 'r', encoding='utf-8') as f:
-                return yaml.safe_load(f)
-        except Exception as e:
-            logging.warning(f"无法加载分类配置文件 {category_path}: {e}")
             return {
                 "version": "1.0",
                 "categories": {
@@ -138,16 +118,11 @@ class DataProcessor:
                     "CREATIVE": {"description": "创造性回答"}
                 }
             }
->>>>>>> 585f086 (Initial commit: Add data quality assessment functionality)
 
     def _create_default_result(self, item: AlpacaItem, error_msg: str, error_type: str) -> ProcessedItem:
         """创建默认的错误结果"""
         return ProcessedItem(
-<<<<<<< HEAD
             id=str(time.time()),
-=======
-            id="error",
->>>>>>> 585f086 (Initial commit: Add data quality assessment functionality)
             source="error",
             instruction=item.instruction,
             input=item.input,
@@ -429,15 +404,6 @@ class DataProcessor:
                 "max_score": 0.0,
                 "success_rate": 0.0
             }
-<<<<<<< HEAD
-        
-        scores = [item.score for item in items]
-        return {
-            "average_score": sum(scores) / len(scores),
-            "min_score": min(scores),
-            "max_score": max(scores),
-            "success_rate": 1.0  # 所有成功处理的项都被视为成功
-=======
             
         quality_scores = [item.score for item in items]
         
@@ -445,8 +411,7 @@ class DataProcessor:
             "average_score": sum(quality_scores) / len(quality_scores),
             "min_score": min(quality_scores),
             "max_score": max(quality_scores),
-            "success_rate": float(len(items)) / (len(items) + len([i for i in items if not i.score]))
->>>>>>> 585f086 (Initial commit: Add data quality assessment functionality)
+            "success_rate": len([score for score in quality_scores if score > 0]) / len(quality_scores)
         }
 
     def filter_results(self, results: List[ProcessedItem]) -> List[ProcessedItem]:
