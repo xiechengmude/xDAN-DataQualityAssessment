@@ -136,13 +136,18 @@ class DataTransformer:
     def push_to_hub(self, file_path: Path) -> None:
         """Push results to HuggingFace Hub using datasets."""
         try:
-            from datasets import Dataset, Features, Value, load_dataset
+            from datasets import Dataset
             import json
             
-            # 从配置中获取repository_id
-            repo_id = self.config.get('huggingface', {}).get('repository_id')
-            if not repo_id:
-                raise ValueError("Repository ID not found in config")
+            # 获取hub配置
+            hub_config = self.config.get('output', {}).get('hub_config', {})
+            if not hub_config:
+                raise ValueError("Hub configuration not found in config")
+            
+            # 检查是否需要推送到hub
+            if not self.config.get('output', {}).get('push_to_hub', False):
+                logger.info("Push to hub is disabled in config")
+                return
             
             # 读取JSON文件
             with open(file_path, 'r', encoding='utf-8') as f:
@@ -153,11 +158,11 @@ class DataTransformer:
             
             # 推送到hub
             dataset.push_to_hub(
-                repo_id,
-                private=False,
-                token=self.config.get('huggingface', {}).get('token')
+                hub_config['repository_id'],
+                private=hub_config.get('private', True),
+                token=hub_config.get('token')
             )
-            logger.info(f"Successfully pushed dataset to {repo_id}")
+            logger.info(f"Successfully pushed dataset to {hub_config['repository_id']}")
             
         except Exception as e:
             logger.error(f"Error pushing to hub: {str(e)}")

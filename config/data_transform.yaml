@@ -9,13 +9,15 @@ input:
     - output
 
 output:
-  format: structured_prompt
-  template: system_long_cot_analysis
-  components:
-    - Analyze
-    - Solve
-    - Verify
-    - Solution
+  base_dir: "outputs"  # 基础输出目录
+  save_local: true  # 是否保存到本地
+  push_to_hub: true  # 是否推送到Hugging Face Hub
+  hub_config:
+    repository_id: "xDAN2099"  # Hugging Face Hub 仓库ID
+    private: true  # 是否为私有仓库
+    token: ${HUGGINGFACE_TOKEN}  # Hugging Face Hub token
+  save_format: "json"  # 支持: json, jsonl, parquet
+  include_metadata: true
 
 processing:
   validate_input: true
@@ -65,15 +67,6 @@ dataset_common:
   hf_cache_dir: "~/.cache/huggingface/datasets"
   shuffle_seed: 42
   combine_datasets: true
-
-output:
-  save_format: "json"
-  template: "system_long_cot_analysis"
-  file_naming:
-    task_name: "data_transform"
-    include_dataset_info: true
-    include_sample_count: true
-    include_timestamp: true
 
 transform:
   validate_input: true
