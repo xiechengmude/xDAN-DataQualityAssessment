@@ -1,4 +1,3 @@
-
 # OpenAI配置
 openai:
   model_name: "deepseek-chat"

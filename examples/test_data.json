@@ -1,0 +1,12 @@
+[
+  {
+    "instruction": "分析以下代码的时间复杂度",
+    "input": "def bubble_sort(arr):\n    n = len(arr)\n    for i in range(n):\n        for j in range(0, n-i-1):\n            if arr[j] > arr[j+1]:\n                arr[j], arr[j+1] = arr[j+1], arr[j]",
+    "output": "冒泡排序的时间复杂度是O(n^2)，其中n是数组的长度。这是因为它使用了两层嵌套循环：外层循环执行n次，内层循环在第i次迭代时执行(n-i-1)次。"
+  },
+  {
+    "instruction": "评估以下数据库查询的性能",
+    "input": "SELECT u.name, COUNT(o.id) as order_count\nFROM users u\nLEFT JOIN orders o ON u.id = o.user_id\nWHERE o.status = 'completed'\nGROUP BY u.name\nHAVING COUNT(o.id) > 10",
+    "output": "这个查询可能会有性能问题：\n1. 使用了LEFT JOIN，可能会产生大量的中间结果\n2. GROUP BY操作需要额外的内存和计算资源\n3. HAVING子句会在分组后进行过滤，增加了计算开销\n\n建议：\n1. 在user_id和status列上创建索引\n2. 考虑先过滤status再进行连接\n3. 如果可能，使用INNER JOIN替代LEFT JOIN"
+  }
+]

@@ -1,0 +1,33 @@
+[
+  {
+    "id": "1736006292000001",
+    "source": "test_dataset",
+    "instruction": "Give three tips for staying healthy.",
+    "input": "",
+    "output": "1.Eat a balanced diet and make sure to include plenty of fruits and vegetables. \n2. Exercise regularly to keep your body active and strong. \n3. Get enough sleep and maintain a consistent sleep schedule.",
+    "quality_metrics": {
+      "reasoning_depth": 8.0,
+      "correctness": 9.0,
+      "clarity": 9.0,
+      "context_awareness": 8.0,
+      "engagement": 7.0
+    },
+    "score": 8.2,
+    "category": "INSTRUCTION_FOLLOWING",
+    "processed_output": "1. Eat a balanced diet and make sure to include plenty of fruits and vegetables. 2. Exercise regularly to keep your body active and strong. 3. Get enough sleep and maintain a consistent sleep schedule.",
+    "metadata": {
+      "improvement_suggestions": [
+        "Consider adding more specific examples or details to each tip to enhance engagement and clarity.",
+        "Include references or sources to increase the correctness and reliability of the information provided."
+      ],
+      "validation_notes": [
+        "The output effectively follows the instruction by providing three clear and actionable tips for staying healthy.",
+        "The tips are general but correct and applicable to a wide audience, which is suitable for the context of the instruction."
+      ],
+      "processing_time": 6.801274299621582,
+      "token_count": 630,
+      "id": "1736006292000001",
+      "source": "test_dataset"
+    }
+  }
+]

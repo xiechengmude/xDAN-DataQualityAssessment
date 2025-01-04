@@ -1,86 +1,5 @@
 import os
 import json
-import logging
-from datetime import datetime
-from typing import List, Dict, Any, Optional
-from datasets import Dataset
-from ..models import ProcessedItem
-
-logger = logging.getLogger(__name__)
-
-class DatasetManager:
-    def __init__(self, output_dir: str, output_config: Dict[str, Any]):
-        """初始化数据集管理器
-        
-        Args:
-            output_dir: 输出目录
-            output_config: 输出配置
-        """
-        self.output_dir = output_dir
-        self.output_config = output_config
-        
-        # 确保输出目录存在
-        os.makedirs(output_dir, exist_ok=True)
-
-    def save_locally(self, data: List[Dict], prefix: str, dataset_name: str) -> str:
-        """保存数据集到本地
-        
-        Args:
-            data: 要保存的数据
-            prefix: 文件名前缀
-            dataset_name: 数据集名称
-            
-        Returns:
-            str: 保存的文件路径
-        """
-        # 构建输出路径
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"{prefix}_{dataset_name}_{timestamp}.json"
-        output_path = os.path.join(self.output_dir, filename)
-        
-        # 保存到本地
-        with open(output_path, 'w', encoding='utf-8') as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
-        logger.info(f"Dataset saved locally to: {output_path}")
-        
-        return output_path
-
-    def push_to_hub(self, data: List[Dict], dataset_name: str) -> Optional[Dataset]:
-        """推送数据集到Hugging Face Hub
-        
-        Args:
-            data: 要推送的数据
-            dataset_name: 数据集名称
-            
-        Returns:
-            Optional[Dataset]: 推送成功返回Dataset对象，失败返回None
-        """
-        if not self.output_config.get("push_to_hub"):
-            return None
-            
-        try:
-            # 构建完整的repository_id
-            hub_config = self.output_config.get("hub_config", {})
-            base_repo = hub_config.get("repository_id", "").split('/')[0]
-            repository_id = f"{base_repo}/{dataset_name}"
-            
-            # 创建Dataset对象
-            dataset = Dataset.from_list(data)
-            
-            # 推送到Hub
-            dataset.push_to_hub(
-                repository_id,
-                private=hub_config.get("private", True),
-                token=hub_config.get("token")
-            )
-            logger.info(f"Dataset pushed to Hugging Face Hub: {repository_id}")
-            return dataset
-        except Exception as e:
-            logger.error(f"Failed to push dataset to Hugging Face Hub: {str(e)}")
-            return None
-
-import os
-import json
 from datetime import datetime
 from pathlib import Path
 from typing import List, Dict, Any, Optional
@@ -174,25 +93,27 @@ class DatasetManager:
             return None
             
         hub_config = self.output_config["hub_config"]
+        if "repository_id" not in hub_config:
+            raise ValueError("需要在配置中提供 repository_id")
+            
         if not hub_config["token"]:
             raise ValueError("需要在配置中提供 Hugging Face token 或设置 HF_TOKEN 环境变量")
-            
-        if not hub_config["repository_id"]:
-            raise ValueError("需要在配置中提供 repository_id")
             
         # 创建数据集
         dataset_dict = {}
         
         # 根据数据源分组
-        sources = set(item.get('sources', 'unknown') for item in data)
-        for source in sources:
-            source_data = [item for item in data if item.get('sources', 'unknown') == source]
-            if source_data:
-                dataset_dict[source] = datasets.Dataset.from_list(source_data)
-        
-        # 创建 DatasetDict
-        full_dataset = datasets.DatasetDict(dataset_dict)
-        
+        for item in data:
+            source = item.get("sources", "default")
+            if source not in dataset_dict:
+                dataset_dict[source] = []
+            dataset_dict[source].append(item)
+            
+        # 为每个数据源创建数据集
+        full_dataset = datasets.DatasetDict()
+        for source, items in dataset_dict.items():
+            full_dataset[source] = datasets.Dataset.from_list(items)
+            
         # 推送到hub
         repository_id = hub_config["repository_id"]
         if not "/" in repository_id:
