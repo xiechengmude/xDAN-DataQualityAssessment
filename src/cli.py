@@ -42,6 +42,14 @@ def process_dataset(
     output_dir: Optional[Path] = typer.Option(
         None,
         help="输出目录"
+    ),
+    dataset_name: Optional[str] = typer.Option(
+        None,
+        help="数据集名称，例如：tatsu-lab/alpaca"
+    ),
+    dataset_split: Optional[str] = typer.Option(
+        None,
+        help="数据集分片，例如：train"
     )
 ):
     """处理数据集"""
@@ -52,6 +60,12 @@ def process_dataset(
         # 初始化组件
         data_loader = DataLoader(config_path)
         processor = DataProcessor(config_path)
+        
+        # 如果指定了数据集名称，更新配置
+        if dataset_name:
+            data_loader.config['datasets'][0]['name'] = dataset_name
+            if dataset_split:
+                data_loader.config['datasets'][0]['split'] = dataset_split
         
         # 开始处理
         start_time = time.time()

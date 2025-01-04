@@ -110,52 +110,71 @@ dataset:
 
 ## 使用方法
 
-1. **基本用法**
+本系统提供了三种主要的使用方式：
+
+### 1. 基本用法
+使用默认配置处理数据集：
 ```bash
 python -m src.cli process-dataset
 ```
 
-2. **指定数据集**
+### 2. 指定数据集
+直接指定要处理的数据集和分片：
 ```bash
 python -m src.cli process-dataset \
     --dataset-name "tatsu-lab/alpaca" \
     --dataset-split "train"
 ```
 
-3. **自定义配置**
+### 3. 自定义配置
+使用自定义配置文件和输出目录：
 ```bash
 python -m src.cli process-dataset \
     --config-path "path/to/config.yaml" \
     --output-dir "path/to/output"
 ```
 
-## 输出格式
+### 参数说明
 
-处理后的数据将分为两个文件：
+- `--config-path`: 配置文件路径，默认为 "config/default_config.yaml"
+- `--output-dir`: 输出目录，默认使用配置文件中的设置
+- `--dataset-name`: 数据集名称，例如："tatsu-lab/alpaca"
+- `--dataset-split`: 数据集分片，例如："train"
+
+### 输出文件
+
+处理后的数据将保存为两个文件：
 - `successful.jsonl`: 成功处理的数据
 - `failed.jsonl`: 处理失败的数据
 
 每个处理后的数据项包含：
 ```json
 {
-  "original": {
-    "instruction": "...",
-    "input": "...",
-    "output": "..."
-  },
+  "id": "unique_id",
+  "sources": "dataset_name",
+  "instruction": "原始指令",
+  "input": "输入内容",
+  "output": "输出内容",
   "quality_metrics": {
-    "clarity": 8.5,
+    "reasoning_depth": 8.5,
     "correctness": 9.0,
-    "completeness": 8.0,
-    "educational_value": 8.5
+    "clarity": 7.5,
+    "context_awareness": 8.0,
+    "engagement": 7.0
   },
-  "category": "PROGRAMMING",
-  "processed_output": "...",
+  "score": 8.0,
+  "category": "KNOWLEDGE",
   "metadata": {
-    "processing_time": 1.23,
-    "token_count": 450,
-    "improvement_suggestions": [...],
-    "validation_notes": [...]
+    "processing_time": 1.5,
+    "token_count": 150,
+    "improvement_suggestions": [
+      "建议1",
+      "建议2"
+    ],
+    "validation_notes": [
+      "说明1",
+      "说明2"
+    ]
   }
 }
 ```
