@@ -24,8 +24,8 @@ openai:
 
 # 并发配置
 concurrency:
-  max_concurrent_requests: 5  # 降低并发数便于测试
-  batch_size: 5
+  max_concurrent_requests: 200  # 恢复到200并发
+  batch_size: 200  # 恢复到200批量
   request_timeout: 60
   max_retries: 3
   retry_delay: 1
@@ -41,7 +41,7 @@ datasets:
     config: ""
     split: "train"
     subset: ""
-    num_samples: 20  # 只处理10条数据用于测试
+    num_samples: -1  # 恢复到处理全部数据
     field_mapping:
       instruction: "instruction"
       input: "input"
@@ -77,7 +77,7 @@ transform:
 output:
   base_dir: "output"  # 基础输出目录
   save_local: true  # 同时保存到本地，方便调试
-  save_interval: 5  # 每处理5条数据保存一次
+  save_interval: 600  # 每600条数据保存一次
   push_to_hub: true  # 启用推送到hub
   hub_config:
     owner: "xDAN2099"  # Hugging Face Hub 用户名/组织名
