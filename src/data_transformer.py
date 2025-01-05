@@ -272,18 +272,46 @@ class DataTransformer:
     async def transform_dataset(self) -> List[RefinedAlpacaItem]:
         """转换数据集"""
         try:
+            if not self.dataset:
+                self.dataset = self.data_loader.load_dataset()
+            
+            # 获取已处理的数据数量
+            start_offset = 0
+            try:
+                # 尝试从checkpoint数据集获取已处理的数量
+                repo_id = f"{self.config['output']['hub_config']['owner']}/{self.config['output']['hub_config']['repo_prefix']}-{self.config['task_name']}_checkpoint"
+                checkpoint_dataset = load_dataset(repo_id.replace("--", "-"), split="train")
+                if checkpoint_dataset is not None:
+                    start_offset = len(checkpoint_dataset)
+                    # 设置起始id为已处理数据量
+                    self.current_id = start_offset
+                    logger.info(f"Found existing checkpoint with {start_offset} items, continuing from there")
+            except Exception as e:
+                logger.info(f"No existing checkpoint found: {e}")
+            
+            # 只处理未处理的数据
+            remaining_dataset = self.dataset[start_offset:]
+            if len(remaining_dataset) == 0:
+                logger.info("All data has been processed, nothing to do")
+                return []
+            
+            logger.info(f"Processing {len(remaining_dataset)} items (skipping first {start_offset} items)")
+            
             transformed_items = []
-            save_interval = self.config.get('output', {}).get('save_interval', 100)
+            save_interval = self.config.get('output', {}).get('save_interval', 600)
             save_local = self.config.get('output', {}).get('save_local', True)
             push_to_hub = self.config.get('output', {}).get('push_to_hub', False)
             
             # 创建批次
-            batches = self._create_batches()
-            total_batches = len(batches)
+            batch_size = self.config.get('concurrency', {}).get('batch_size', 100)
+            batches = [
+                remaining_dataset[i:i + batch_size]
+                for i in range(0, len(remaining_dataset), batch_size)
+            ]
             
-            # 使用tqdm创建进度条
-            with tqdm(total=total_batches, desc="Transforming data") as pbar:
-                for i, batch in enumerate(batches, 1):
+            # 使用tqdm显示进度
+            with tqdm(total=len(batches), desc="Transforming data") as pbar:
+                for batch_idx, batch in enumerate(batches):
                     # 转换当前批次
                     batch_items = await self._transform_batch(batch)
                     transformed_items.extend(batch_items)
@@ -291,12 +319,12 @@ class DataTransformer:
                     # 更新进度条
                     pbar.update(1)
                     pbar.set_postfix({
-                        'Items': len(transformed_items),
-                        'Current Batch': f"{i}/{total_batches}"
+                        'Items': len(transformed_items) + start_offset,
+                        'Current Batch': f"{batch_idx + 1}/{len(batches)}"
                     })
                     
-                    # 检查是否需要间隔保存
-                    if len(transformed_items) % save_interval == 0:
+                    # 定期保存和上传
+                    if save_interval > 0 and (len(transformed_items) % save_interval == 0 or batch_idx == len(batches) - 1):
                         if save_local:
                             output_file = self._get_output_file_path()
                             self._save_to_json(transformed_items, output_file)
@@ -315,7 +343,6 @@ class DataTransformer:
                 await self._upload_to_hub(transformed_items, is_checkpoint=False)
             
             return transformed_items
-            
         except Exception as e:
             logger.error(f"Error in transform_dataset: {e}")
             raise
