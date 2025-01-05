@@ -9,6 +9,7 @@ from datetime import datetime
 import yaml
 import asyncio
 from openai import AsyncOpenAI
+from dataclasses import asdict
 
 from .data_types import AlpacaItem, RefinedAlpacaItem, TokenInfo
 from .data_loader import DataLoader, DatasetConfig
@@ -184,7 +185,7 @@ class DataTransformer:
         tasks = []
         for i, item in enumerate(items, start=start_idx):
             item.id = i  # 设置id
-            tasks.append(self.transform_item(item, dataset_name=dataset_names[i] if dataset_names else None))
+            tasks.append(self._transform_item(item, dataset_name=dataset_names[i] if dataset_names else None))
         
         try:
             results = await asyncio.gather(*tasks)
@@ -193,7 +194,7 @@ class DataTransformer:
             logger.error(f"Batch processing error: {str(e)}")
             raise
 
-    async def transform_item(self, alpaca_item: AlpacaItem, dataset_name: str = None) -> RefinedAlpacaItem:
+    async def _transform_item(self, alpaca_item: AlpacaItem, dataset_name: str = None) -> RefinedAlpacaItem:
         """Transform a single data item to include structured output."""
         try:
             # 验证输入
@@ -214,47 +215,67 @@ class DataTransformer:
             logger.error(f"Error transforming item: {str(e)}")
             raise
     
-    async def transform_dataset(self) -> List[RefinedAlpacaItem]:
-        """Transform all items in the dataset."""
-        try:
-            items = self.dataset
-            if not items:
-                raise ValueError("No items to transform")
-
-            logger.info(f"Starting transformation of {len(items)} items")
-            transformed_items = []
-            batch_size = self.config.get('batch_size', 10)
-
-            # 获取每个数据项对应的数据集名称
-            dataset_names = []
-            for item in items:
+    def _create_batches(self) -> List[List[AlpacaItem]]:
+        """创建数据批次"""
+        items = self.dataset
+        if not items:
+            raise ValueError("No items to transform")
+        
+        logger.info(f"Starting transformation of {len(items)} items")
+        batch_size = self.config.get('batch_size', 10)
+        
+        # 分批处理数据
+        for i in range(0, len(items), batch_size):
+            batch = items[i:i + batch_size]
+            yield batch
+    
+    async def _transform_batch(self, batch: List[AlpacaItem]) -> List[RefinedAlpacaItem]:
+        """转换一批数据"""
+        transformed_items = []
+        for item in batch:
+            try:
+                # 获取数据集名称
                 dataset_name = item.metadata.get('dataset_name', 'unknown')
-                dataset_names.append(dataset_name)
-            
-            # 使用tqdm显示进度
-            for i in tqdm(range(0, len(items), batch_size), desc="Transforming data"):
-                batch = items[i:i + batch_size]
-                # 传入对应的数据集名称
-                batch_results = await self.transform_batch(batch, start_idx=i, dataset_names=dataset_names[i:i + batch_size])
                 
-                # 处理结果
-                for result in batch_results:
-                    if isinstance(result, Exception):
-                        logger.error(f"Error in batch processing: {str(result)}")
-                    else:
-                        transformed_items.append(result)
-
-            # 保存转换后的数据
-            if transformed_items:
-                output_file = self._get_output_file_path()
-                self._save_to_json(transformed_items, output_file)
-                logger.info(f"Saved {len(transformed_items)} transformed items to {output_file}")
-
-            # 关闭客户端连接
-            await self.close()
+                # 转换单个数据项
+                transformed_item = await self._transform_item(item, dataset_name)
+                transformed_items.append(transformed_item)
+            except Exception as e:
+                logger.error(f"Error transforming item in batch: {str(e)}")
+                continue
+        return transformed_items
+    
+    async def transform_dataset(self) -> List[RefinedAlpacaItem]:
+        """转换数据集"""
+        try:
+            # 获取保存间隔
+            save_interval = self.config.get('output', {}).get('save_interval', 500)
+            transformed_items = []
+            
+            # 分批处理数据
+            batches = list(self._create_batches())
+            with tqdm(total=len(batches), desc="Transforming data") as pbar:
+                for batch in batches:
+                    # 转换当前批次
+                    batch_items = await self._transform_batch(batch)
+                    transformed_items.extend(batch_items)
+                    
+                    # 如果达到保存间隔且需要上传到 HF Hub，则进行保存和上传
+                    if len(transformed_items) >= save_interval and self.config.get('output', {}).get('push_to_hub', True):
+                        await self._upload_to_hub(transformed_items)
+                        logger.info(f"Uploaded {len(transformed_items)} items to HuggingFace Hub")
+                        # 清空已保存的数据
+                        transformed_items = []
+                    
+                    pbar.update(1)
+            
+            # 处理剩余的数据
+            if transformed_items and self.config.get('output', {}).get('push_to_hub', True):
+                await self._upload_to_hub(transformed_items)
+                logger.info(f"Uploaded {len(transformed_items)} items to HuggingFace Hub")
             
             return transformed_items
-
+            
         except Exception as e:
             logger.error(f"Error in transform_dataset: {str(e)}")
             raise
@@ -278,46 +299,41 @@ class DataTransformer:
         with open(output_file, 'w', encoding='utf-8') as f:
             json.dump([item.dict() for item in items], f, ensure_ascii=False, indent=2)
     
-    async def _upload_to_hub(self, output_file: str) -> None:
-        """上传数据到Hugging Face Hub"""
+    async def _upload_to_hub(self, items: List[RefinedAlpacaItem]) -> None:
+        """上传数据到 HuggingFace Hub"""
         try:
-            from datasets import Dataset
-            import pandas as pd
-            
-            # 读取数据
-            with open(output_file, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-            
-            # 将 source 字段改为 task_name
-            task_name = self.config.get('task_name', 'unknown_task')
-            for item in data:
-                item['task_name'] = task_name
-                if 'source' in item:
-                    del item['source']
-            
-            # 转换为 DataFrame
-            df = pd.DataFrame(data)
-            
-            # 创建 Dataset
-            dataset = Dataset.from_pandas(df)
-            
-            # 获取 hub 配置
+            # 获取配置
             hub_config = self.config.get('output', {}).get('hub_config', {})
             repo_id = hub_config.get('repo_id')
-            token = hub_config.get('token')
             split = hub_config.get('split', 'train')
-            
-            # 生成数据集名称，与输出文件名保持一致
-            dataset_name = os.path.splitext(os.path.basename(output_file))[0]
-            
-            # 上传到 Hub
+            token = hub_config.get('token')
+
+            if not repo_id or not token:
+                raise ValueError("Missing required HuggingFace Hub configuration")
+
+            # 创建数据集字典列表
+            data_list = []
+            for item in items:
+                data_dict = asdict(item)
+                # 将 source 字段改为 task_name
+                data_dict['task_name'] = data_dict.pop('source', None)
+                data_list.append(data_dict)
+
+            # 创建 Dataset 对象
+            dataset = Dataset.from_list(data_list)
+
+            # 获取当前时间戳作为数据集名称
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            dataset_name = f"task_data_transform_{timestamp}"
+
+            # 上传到 HuggingFace Hub
             dataset.push_to_hub(
-                repo_id=f"{repo_id}/{dataset_name}",
+                repo_id=repo_id,
                 split=split,
                 token=token,
                 private=True
             )
-            
+
         except Exception as e:
             logger.error(f"Error uploading to HuggingFace Hub: {str(e)}")
             raise
