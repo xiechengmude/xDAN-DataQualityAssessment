@@ -13,10 +13,14 @@ input:
 # OpenAI配置
 openai:
   model_name: "deepseek-chat"
-  max_tokens: 4096
+  max_tokens: 8192
   temperature: 0.7
   api_key: "sk-cUaGu4E02RDTCxnnC3398860D5944953A4Fa9c5dA13aF93e"
   api_base: "http://35.240.173.116:7220/v1"
+  pricing:
+    input_price_per_million: 1.0  # 每百万tokens的输入价格
+    output_price_per_million: 2.0  # 每百万tokens的输出价格
+    currency: "CNY"  # 货币单位
 
 # 并发配置
 concurrency:
@@ -37,7 +41,7 @@ datasets:
     config: ""
     split: "train"
     subset: ""
-    num_samples: -1
+    num_samples: 10
     field_mapping:
       instruction: "instruction"
       input: "input"

@@ -2,13 +2,13 @@ import asyncio
 import json
 import logging
 from pathlib import Path
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Tuple
 from openai import AsyncOpenAI
 import yaml
 from tqdm import tqdm
 from datetime import datetime
 
-from .data_types import AlpacaItem, RefinedAlpacaItem
+from .data_types import AlpacaItem, RefinedAlpacaItem, TokenInfo
 from .data_loader import DataLoader, DatasetConfig
 from .data_types import AlpacaItem, RefinedAlpacaItem
 
@@ -42,7 +42,7 @@ class DataTransformer:
         with open(template_path, 'r', encoding='utf-8') as f:
             return f.read()
     
-    async def refine_output(self, item: AlpacaItem) -> str:
+    async def refine_output(self, item: AlpacaItem) -> Tuple[str, TokenInfo]:
         """Transform the original output into a structured format"""
         prompt = f"""Please convert the following Q&A pair into a structured analysis format. Be concise and clear.
 
@@ -97,7 +97,30 @@ Please maintain analytical rigor in the first three parts, and use a conversatio
                         max_tokens=self.config['openai']['max_tokens'],
                         timeout=timeout
                     )
-                    return response.choices[0].message.content
+                    
+                    # 计算token信息
+                    input_tokens = response.usage.prompt_tokens
+                    output_tokens = response.usage.completion_tokens
+                    total_tokens = response.usage.total_tokens
+                    
+                    # 从配置中获取价格信息
+                    pricing_config = self.config['openai'].get('pricing', {})
+                    input_price = pricing_config.get('input_price_per_million', 1.0) / 1_000_000
+                    output_price = pricing_config.get('output_price_per_million', 2.0) / 1_000_000
+                    currency = pricing_config.get('currency', 'CNY')
+                    
+                    # 计算预估成本
+                    estimated_cost = (input_tokens * input_price) + (output_tokens * output_price)
+                    
+                    token_info = TokenInfo(
+                        input_tokens=input_tokens,
+                        output_tokens=output_tokens,
+                        total_tokens=total_tokens,
+                        estimated_cost=estimated_cost,
+                        currency=currency
+                    )
+                    
+                    return response.choices[0].message.content, token_info
                 except Exception as e:
                     if attempt == max_retries - 1:
                         logger.error(f"All retry attempts failed: {str(e)}")
@@ -118,13 +141,14 @@ Please maintain analytical rigor in the first three parts, and use a conversatio
                     if not getattr(alpaca_item, field, None):
                         raise ValueError(f"Required field '{field}' is missing or empty")
             
-            refined_output = await self.refine_output(alpaca_item)
+            refined_output, token_info = await self.refine_output(alpaca_item)
             return RefinedAlpacaItem.from_alpaca_item(
                 item=alpaca_item,
                 refined_output=refined_output,
                 source=self.config.get('task_name', 'data_transform'),
                 model_name=self.config.get('openai', {}).get('model_name', 'unknown'),
-                original_dataset=dataset_name
+                original_dataset=dataset_name,
+                token_info=token_info
             )
         except Exception as e:
             logger.error(f"Error transforming item: {str(e)}")
