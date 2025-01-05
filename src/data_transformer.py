@@ -331,7 +331,20 @@ class DataTransformer:
                             logger.info(f"Saved checkpoint: {len(transformed_items)} items to {output_file}")
                         
                         if push_to_hub:
-                            await self._upload_to_hub(transformed_items, is_checkpoint=True)
+                            # 合并之前处理过的数据和新数据
+                            all_items = []
+                            if start_offset > 0:
+                                # 获取之前的数据
+                                try:
+                                    repo_id = f"{self.config['output']['hub_config']['owner']}/{self.config['output']['hub_config']['repo_prefix']}-{self.config['task_name']}"
+                                    existing_dataset = load_dataset(repo_id.replace("--", "-"), split="train")
+                                    for item in existing_dataset:
+                                        all_items.append(RefinedAlpacaItem(**item))
+                                except Exception as e:
+                                    logger.info(f"No existing dataset found: {e}")
+                            # 添加新处理的数据
+                            all_items.extend(transformed_items)
+                            await self._upload_to_hub(all_items, is_checkpoint=True)
             
             # 最终保存和上传
             if save_local:
@@ -340,9 +353,21 @@ class DataTransformer:
                 logger.info(f"Final save: {len(transformed_items)} items to {output_file}")
             
             if push_to_hub:
-                await self._upload_to_hub(transformed_items, is_checkpoint=False)
+                # 合并所有数据进行最终上传
+                all_items = []
+                if start_offset > 0:
+                    try:
+                        repo_id = f"{self.config['output']['hub_config']['owner']}/{self.config['output']['hub_config']['repo_prefix']}-{self.config['task_name']}"
+                        existing_dataset = load_dataset(repo_id.replace("--", "-"), split="train")
+                        for item in existing_dataset:
+                            all_items.append(RefinedAlpacaItem(**item))
+                    except Exception as e:
+                        logger.info(f"No existing dataset found: {e}")
+                all_items.extend(transformed_items)
+                await self._upload_to_hub(all_items, is_checkpoint=False)
             
             return transformed_items
+            
         except Exception as e:
             logger.error(f"Error in transform_dataset: {e}")
             raise
@@ -393,7 +418,7 @@ class DataTransformer:
                 data_list.append(data_dict)
 
             # 创建 Dataset 对象
-            dataset = Dataset.from_list(data_list)
+            new_dataset = Dataset.from_list(data_list)
 
             # 使用固定的仓库名
             task_name = self.config.get('task_name', 'unknown')
@@ -402,34 +427,35 @@ class DataTransformer:
                 dataset_name += "_checkpoint"
             repo_id = f"{owner}/{repo_prefix}-{dataset_name}".replace("--", "-")
 
+            final_dataset = new_dataset
             try:
-                # 尝试加载并合并现有数据集
+                # 尝试加载现有数据集
                 existing_dataset = load_dataset(repo_id, split=split)
-                
-                # 获取现有数据集的id列表
-                existing_ids = set(existing_dataset['id'])
-                
-                # 过滤掉已存在的数据
-                new_dataset = dataset.filter(lambda x: x['id'] not in existing_ids)
-                
-                # 合并新旧数据集
-                if len(new_dataset) > 0:
-                    dataset = concatenate_datasets([existing_dataset, new_dataset])
-                else:
-                    dataset = existing_dataset
-                    logger.info(f"No new data to add, all {len(existing_ids)} items already exist")
+                if existing_dataset is not None:
+                    # 获取现有数据集的id列表
+                    existing_ids = set(existing_dataset['id'])
+                    # 过滤掉已存在的数据
+                    filtered_new_dataset = new_dataset.filter(lambda x: x['id'] not in existing_ids)
+                    
+                    if len(filtered_new_dataset) > 0:
+                        # 合并新旧数据集
+                        final_dataset = concatenate_datasets([existing_dataset, filtered_new_dataset])
+                        logger.info(f"Successfully merged {len(filtered_new_dataset)} new items with existing {len(existing_dataset)} items")
+                    else:
+                        final_dataset = existing_dataset
+                        logger.info(f"No new data to add, all items already exist in the dataset")
             except Exception as e:
                 logger.info(f"Creating new dataset: {e}")
             
             # 上传到 HuggingFace Hub
-            dataset.push_to_hub(
+            final_dataset.push_to_hub(
                 repo_id=repo_id,
                 split=split,
                 token=token,
                 private=True
             )
 
-            logger.info(f"Successfully pushed {'checkpoint' if is_checkpoint else 'final'} dataset ({len(dataset)} items) to {repo_id}")
+            logger.info(f"Successfully pushed {'checkpoint' if is_checkpoint else 'final'} dataset ({len(final_dataset)} items) to {repo_id}")
             
         except Exception as e:
             logger.error(f"Error uploading to hub: {str(e)}")
