@@ -4,20 +4,21 @@ from datetime import datetime
 
 @dataclass
 class TokenInfo:
-    """Token统计信息"""
+    """Token使用信息"""
     input_tokens: int
     output_tokens: int
     total_tokens: int
-    estimated_cost: float  # 预估成本
+    estimated_cost: float
     currency: str = 'CNY'  # 货币单位，默认为人民币
 
 @dataclass
 class AlpacaItem:
-    """原始 Alpaca 格式数据项"""
+    """原始的 Alpaca 数据项"""
     instruction: str
-    input: Optional[str]
     output: str
-    metadata: Optional[Dict] = field(default_factory=dict)
+    id: Optional[int] = None
+    input: Optional[str] = None
+    metadata: Dict = field(default_factory=dict)
 
     def dict(self):
         """转换为字典格式"""
@@ -26,32 +27,34 @@ class AlpacaItem:
 @dataclass
 class RefinedAlpacaItem:
     """经过结构化的 Alpaca 数据项"""
+    id: int
     instruction: str
-    input: Optional[str]
     output: str
     refined_output: str
-    source: Optional[str] = None
-    model_name: Optional[str] = None
-    original_dataset: Optional[str] = None
+    token_info: TokenInfo
+    input: Optional[str] = None
+    source: str = "data_transform"  # 默认来源
+    model_name: str = "gpt-3.5-turbo"  # 默认模型
+    sources: Optional[str] = None
     timestamp: Optional[str] = None
-    token_info: Optional[TokenInfo] = None
-    metadata: Optional[Dict] = field(default_factory=dict)
+    metadata: Dict = field(default_factory=dict)
 
     @classmethod
-    def from_alpaca_item(cls, item: AlpacaItem, refined_output: str, source: str = None, 
-                        model_name: str = None, original_dataset: str = None,
-                        token_info: TokenInfo = None):
+    def from_alpaca_item(cls, item: AlpacaItem, refined_output: str, token_info: TokenInfo, 
+                        source: Optional[str] = None, model_name: Optional[str] = None,
+                        sources: Optional[str] = None):
         """从原始 AlpacaItem 创建 RefinedAlpacaItem"""
         return cls(
+            id=item.id if item.id is not None else 0,
             instruction=item.instruction,
             input=item.input,
             output=item.output,
             refined_output=refined_output,
-            source=source,
-            model_name=model_name,
-            original_dataset=original_dataset,
-            timestamp=datetime.now().strftime("%Y%m%d_%H%M%S"),
             token_info=token_info,
+            source=source or "data_transform",
+            model_name=model_name or "xDAN-L3-Chat",
+            sources=sources,
+            timestamp=datetime.now().isoformat(),
             metadata=item.metadata
         )
 

@@ -12,7 +12,6 @@ TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 # 在后台运行程序，将输出重定向到日志文件
 nohup python -m scripts.transform_data \
     --config config/data_transform.yaml \
-    --push-to-hub \
     > logs/transform_${TIMESTAMP}.log 2>&1 &
 
 # 获取进程ID

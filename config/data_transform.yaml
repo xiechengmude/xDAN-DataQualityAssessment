@@ -41,21 +41,20 @@ datasets:
     config: ""
     split: "train"
     subset: ""
-    num_samples: 10
+    num_samples: 2
     field_mapping:
       instruction: "instruction"
       input: "input"
       output: "output"
-  
-  # - name: "yahma/alpaca-cleaned"
-  #   config: ""
-  #   split: "train"
-  #   subset: ""
-  #   num_samples: 5
-  #   field_mapping:
-  #     instruction: "instruction"
-  #     input: ""
-  #     output: "output"
+  - name: "xDAN2099/xDAN-Agentic-Chat-QwQ-LongCoT-130K-v2"
+    config: ""
+    split: "train"
+    subset: ""
+    num_samples: 2
+    field_mapping:
+      instruction: "problem"
+      input: ""
+      output: "outputs"
 
 # 数据集通用配置
 dataset_common:
@@ -66,38 +65,36 @@ dataset_common:
 # 转换配置
 transform:
   validate_input: true
-  preserve_original: true
-  required_fields:
+  required_fields:  # 必需字段
     - instruction
     - output
-
-# 提示配置
-prompt:
-  format: "structured_prompt"
-  template: "system_long_cot_analysis"
-  components:
-    - Analyze
-    - Solve
-    - Verify
-    - Solution
+  optional_fields:  # 可选字段
+    - input
+  prompt_template: "long_cot"  # 使用的prompt模板名称
+  prompt_templates:
+    structured_analysis:  # 结构化分析模板
+      path: "prompt/transformation/structured_analysis.md"
+      description: "将问答对转换为结构化的分析格式，包含分析、解决、验证和最终答案四个部分"
+    concise_answer:  # 简洁回答模板
+      path: "prompt/transformation/concise_answer.md"
+      description: "生成简洁明了的回答，直接针对问题要点"
+    long_cot:  # 详细的Chain-of-Thought分析模板
+      path: "prompt/transformation/long_cot.md"
+      description: "使用详细的Chain-of-Thought方法进行深入分析和回答，适合复杂问题"
 
 # 输出配置
 output:
-  base_dir: "outputs"  # 基础输出目录
-  save_local: true  # 是否保存到本地
+  base_dir: "output"  # 基础输出目录
+  save_local: false  # 不保存到本地
   push_to_hub: true  # 是否推送到Hugging Face Hub
   hub_config:
-    repository_id: "xDAN2099"  # Hugging Face Hub 仓库ID
-    private: true  # 是否为私有仓库
+    repo_id: "xDAN2099"  # Hugging Face Hub 仓库ID
+    split: "train"  # 数据集分割
     token: "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"  # Hugging Face Hub token
   save_format: "json"  # 支持: json, jsonl, parquet
   include_metadata: true
   file_naming:
-    task_name: "xDAN-Agentic-Chat-v1-part2"  # 任务名称
     include_timestamp: true  # 是否包含时间戳
-    include_dataset_info: true  # 是否包含数据集信息
-    include_sample_count: true  # 是否包含样本数量
-  file_path: "${output.base_dir}/refined_xDAN-Agentic-Chat-v1-part2.json"
 
 # 日志配置
 logging:
