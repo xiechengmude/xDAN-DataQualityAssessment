@@ -429,7 +429,7 @@ class DataTransformer:
                 private=True
             )
 
-            logger.info(f"Successfully pushed {'checkpoint' if is_checkpoint else 'final'} dataset ({len(items)} items) to {repo_id}")
+            logger.info(f"Successfully pushed {'checkpoint' if is_checkpoint else 'final'} dataset ({len(dataset)} items) to {repo_id}")
             
         except Exception as e:
             logger.error(f"Error uploading to hub: {str(e)}")
