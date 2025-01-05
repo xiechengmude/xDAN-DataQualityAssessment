@@ -269,6 +269,47 @@ class DataTransformer:
             
         return batches
 
+    def _get_output_file_path(self, suffix: str = "") -> str:
+        """获取输出文件路径。
+        
+        Args:
+            suffix: 文件名后缀，用于区分不同类型的输出文件
+        """
+        output_config = self.config.get('output', {})
+        base_dir = output_config.get('base_dir', 'output')
+        task_name = self.config.get('task_name', 'unknown')
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        
+        # 创建输出目录
+        os.makedirs(base_dir, exist_ok=True)
+        
+        # 构建文件名：task_taskName_时间戳_后缀.json
+        filename = f"task_{task_name}_{timestamp}{suffix}.json"
+        return os.path.join(base_dir, filename)
+
+    def _save_to_json(self, items: List[RefinedAlpacaItem], output_file: str) -> None:
+        """保存数据到JSON文件"""
+        with open(output_file, 'w', encoding='utf-8') as f:
+            json.dump([item.dict() for item in items], f, ensure_ascii=False, indent=2)
+
+    def _load_from_json(self, file_path: str) -> List[RefinedAlpacaItem]:
+        """从JSON文件加载数据"""
+        if not os.path.exists(file_path):
+            return []
+        with open(file_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+            return [RefinedAlpacaItem(**item) for item in data]
+
+    def _merge_items(self, items1: List[RefinedAlpacaItem], items2: List[RefinedAlpacaItem]) -> List[RefinedAlpacaItem]:
+        """合并两个数据列表，去除重复项"""
+        # 使用id作为唯一标识
+        id_map = {item.id: item for item in items1}
+        # 更新或添加新项
+        for item in items2:
+            id_map[item.id] = item
+        # 返回排序后的列表
+        return sorted(id_map.values(), key=lambda x: x.id)
+
     async def transform_dataset(self) -> List[RefinedAlpacaItem]:
         """转换数据集"""
         try:
@@ -283,7 +324,6 @@ class DataTransformer:
                 checkpoint_dataset = load_dataset(repo_id.replace("--", "-"), split="train")
                 if checkpoint_dataset is not None:
                     start_offset = len(checkpoint_dataset)
-                    # 设置起始id为已处理数据量
                     self.current_id = start_offset
                     logger.info(f"Found existing checkpoint with {start_offset} items, continuing from there")
             except Exception as e:
@@ -298,7 +338,8 @@ class DataTransformer:
             logger.info(f"Processing {len(remaining_dataset)} items (skipping first {start_offset} items)")
             
             transformed_items = []
-            save_interval = self.config.get('output', {}).get('save_interval', 600)
+            save_interval = self.config.get('output', {}).get('save_interval', 1000)
+            push_interval = self.config.get('output', {}).get('push_interval', 5000)
             save_local = self.config.get('output', {}).get('save_local', True)
             push_to_hub = self.config.get('output', {}).get('push_to_hub', False)
             
@@ -308,6 +349,11 @@ class DataTransformer:
                 remaining_dataset[i:i + batch_size]
                 for i in range(0, len(remaining_dataset), batch_size)
             ]
+            
+            # 创建累积数据文件
+            accumulated_file = self._get_output_file_path("_accumulated")
+            # 加载已有的累积数据
+            accumulated_items = self._load_from_json(accumulated_file)
             
             # 使用tqdm显示进度
             with tqdm(total=len(batches), desc="Transforming data") as pbar:
@@ -323,74 +369,47 @@ class DataTransformer:
                         'Current Batch': f"{batch_idx + 1}/{len(batches)}"
                     })
                     
-                    # 定期保存和上传
-                    if save_interval > 0 and (len(transformed_items) % save_interval == 0 or batch_idx == len(batches) - 1):
-                        if save_local:
-                            output_file = self._get_output_file_path()
-                            self._save_to_json(transformed_items, output_file)
-                            logger.info(f"Saved checkpoint: {len(transformed_items)} items to {output_file}")
+                    # 定期保存本地文件
+                    if save_local and save_interval > 0 and len(transformed_items) % save_interval == 0:
+                        # 保存分段数据
+                        segment_file = self._get_output_file_path(f"_segment_{len(transformed_items)}")
+                        segment_items = transformed_items[-save_interval:]
+                        self._save_to_json(segment_items, segment_file)
+                        logger.info(f"Saved segment: {len(segment_items)} items to {segment_file}")
                         
-                        if push_to_hub:
-                            # 合并之前处理过的数据和新数据
-                            all_items = []
-                            if start_offset > 0:
-                                # 获取之前的数据
-                                try:
-                                    repo_id = f"{self.config['output']['hub_config']['owner']}/{self.config['output']['hub_config']['repo_prefix']}-{self.config['task_name']}"
-                                    existing_dataset = load_dataset(repo_id.replace("--", "-"), split="train")
-                                    for item in existing_dataset:
-                                        all_items.append(RefinedAlpacaItem(**item))
-                                except Exception as e:
-                                    logger.info(f"No existing dataset found: {e}")
-                            # 添加新处理的数据
-                            all_items.extend(transformed_items)
-                            await self._upload_to_hub(all_items, is_checkpoint=True)
+                        # 更新累积数据
+                        accumulated_items = self._merge_items(accumulated_items, transformed_items)
+                        self._save_to_json(accumulated_items, accumulated_file)
+                        logger.info(f"Updated accumulated file: {len(accumulated_items)} total items")
+                    
+                    # 定期推送到hub
+                    if push_to_hub and push_interval > 0 and len(transformed_items) % push_interval == 0:
+                        # 推送所有累积的数据
+                        await self._upload_to_hub(accumulated_items, is_checkpoint=True)
+                        logger.info(f"Pushed checkpoint: {len(accumulated_items)} items to hub")
             
-            # 最终保存和上传
+            # 最终保存
             if save_local:
-                output_file = self._get_output_file_path()
-                self._save_to_json(transformed_items, output_file)
-                logger.info(f"Final save: {len(transformed_items)} items to {output_file}")
+                # 保存最后一个分段
+                if len(transformed_items) % save_interval > 0:
+                    segment_file = self._get_output_file_path(f"_segment_{len(transformed_items)}")
+                    segment_items = transformed_items[-(len(transformed_items) % save_interval):]
+                    self._save_to_json(segment_items, segment_file)
+                    logger.info(f"Saved final segment: {len(segment_items)} items to {segment_file}")
+                
+                # 更新并保存最终的累积数据
+                final_items = self._merge_items(accumulated_items, transformed_items)
+                final_file = self._get_output_file_path("_final")
+                self._save_to_json(final_items, final_file)
+                logger.info(f"Saved final file: {len(final_items)} total items to {final_file}")
             
+            # 最终推送到hub
             if push_to_hub:
-                # 合并所有数据进行最终上传
-                all_items = []
-                if start_offset > 0:
-                    try:
-                        repo_id = f"{self.config['output']['hub_config']['owner']}/{self.config['output']['hub_config']['repo_prefix']}-{self.config['task_name']}"
-                        existing_dataset = load_dataset(repo_id.replace("--", "-"), split="train")
-                        for item in existing_dataset:
-                            all_items.append(RefinedAlpacaItem(**item))
-                    except Exception as e:
-                        logger.info(f"No existing dataset found: {e}")
-                all_items.extend(transformed_items)
-                await self._upload_to_hub(all_items, is_checkpoint=False)
+                await self._upload_to_hub(final_items, is_checkpoint=False)
+                logger.info(f"Pushed final dataset: {len(final_items)} items to hub")
             
             return transformed_items
-            
-        except Exception as e:
-            logger.error(f"Error in transform_dataset: {e}")
-            raise
-    
-    def _get_output_file_path(self) -> str:
-        """获取输出文件路径。"""
-        output_config = self.config.get('output', {})
-        base_dir = output_config.get('base_dir', 'output')
-        task_name = self.config.get('task_name', 'unknown')
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        
-        # 创建输出目录
-        os.makedirs(base_dir, exist_ok=True)
-        
-        # 构建文件名：task_taskName_时间戳.json
-        filename = f"task_{task_name}_{timestamp}.json"
-        return os.path.join(base_dir, filename)
-    
-    def _save_to_json(self, items: List[RefinedAlpacaItem], output_file: str) -> None:
-        """保存数据到JSON文件"""
-        with open(output_file, 'w', encoding='utf-8') as f:
-            json.dump([item.dict() for item in items], f, ensure_ascii=False, indent=2)
-    
+
     async def _upload_to_hub(self, items: List[RefinedAlpacaItem], is_checkpoint: bool = False) -> None:
         """上传数据到 HuggingFace Hub，支持增量更新
         
