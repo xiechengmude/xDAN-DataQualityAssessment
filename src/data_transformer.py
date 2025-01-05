@@ -409,7 +409,11 @@ class DataTransformer:
                 logger.info(f"Pushed final dataset: {len(final_items)} items to hub")
             
             return transformed_items
-
+        
+        except Exception as e:
+            logger.error(f"Error in transform_dataset: {e}")
+            raise
+    
     async def _upload_to_hub(self, items: List[RefinedAlpacaItem], is_checkpoint: bool = False) -> None:
         """上传数据到 HuggingFace Hub，支持增量更新
         
