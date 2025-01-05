@@ -9,6 +9,12 @@ input:
     - instruction
     - input
     - output
+  dataset:
+    name: "xDAN2099/xDAN-Agentic-Chat-v1-alpaca-ds-v3-cleaned-v0-part2"
+    config: ""
+    split: "train"
+    subset: ""
+    num_samples: 50  # 测试用50条数据
 
 # OpenAI配置
 openai:
@@ -24,8 +30,8 @@ openai:
 
 # 并发配置
 concurrency:
-  max_concurrent_requests: 200  # 恢复到200并发
-  batch_size: 200  # 恢复到200批量
+  max_concurrent_requests: 5  # 小规模测试用5并发
+  batch_size: 5  # 小规模测试用5批量
   request_timeout: 60
   max_retries: 3
   retry_delay: 1
@@ -77,12 +83,12 @@ transform:
 output:
   base_dir: "output"  # 基础输出目录
   save_local: true  # 同时保存到本地
-  save_interval: 1000  # 每1000条数据保存一次分段JSON
-  push_interval: 5000  # 每5000条数据推送一次到hub
+  save_interval: 5  # 每5条数据保存一次分段JSON
+  push_interval: 20  # 每20条数据推送一次到hub
   push_to_hub: true  # 启用推送到hub
   hub_config:
     owner: "xDAN2099"  # Hugging Face Hub 用户名/组织名
-    repo_prefix: "xDAN-Agentic-DataQuality-"  # 仓库名前缀
+    repo_prefix: "xDAN"  # 仓库名前缀
     split: "train"  # 数据集分割
     token: "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"  # Hugging Face Hub token
   save_format: "json"  # 支持: json, jsonl, parquet
