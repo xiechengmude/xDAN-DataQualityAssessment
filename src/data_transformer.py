@@ -8,7 +8,7 @@ import asyncio
 from openai import AsyncOpenAI
 from dataclasses import asdict
 from datetime import datetime
-from datasets import Dataset
+from datasets import Dataset, load_dataset, concatenate_datasets
 from tqdm import tqdm
 from typing import List, Dict, Any, Optional, Tuple
 
@@ -340,54 +340,72 @@ class DataTransformer:
             json.dump([item.dict() for item in items], f, ensure_ascii=False, indent=2)
     
     async def _upload_to_hub(self, items: List[RefinedAlpacaItem], is_checkpoint: bool = False) -> None:
-        """上传数据到 HuggingFace Hub
+        """上传数据到 HuggingFace Hub，支持增量更新
         
         Args:
             items: 要上传的数据项列表
-            is_checkpoint: 是否是检查点数据，如果是则添加checkpoint标记到仓库名
+            is_checkpoint: 是否是检查点数据
         """
         try:
             # 获取配置
             hub_config = self.config.get('output', {}).get('hub_config', {})
-            owner = hub_config.get('owner')
-            repo_prefix = hub_config.get('repo_prefix')
-            split = hub_config.get('split', 'train')
-            token = hub_config.get('token')
-
-            if not all([owner, repo_prefix, token]):
-                raise ValueError("Missing required HuggingFace Hub configuration")
-
-            # 创建数据集字典列表
-            data_list = []
+            owner = hub_config.get('owner', 'xDAN2099')
+            repo_prefix = hub_config.get('repo_prefix', 'xDAN-Agentic-DataQuality-')
+            task_name = self.config.get('task_name', 'unknown_task')
+            
+            # 使用固定的仓库名，不再包含时间戳
+            dataset_name = f"{repo_prefix}{task_name}"
+            if is_checkpoint:
+                dataset_name += "_checkpoint"
+            
+            # 转换数据为Dataset格式
+            data_dict = {
+                'id': [],
+                'instruction': [],
+                'input': [],
+                'output': [],
+                'refined_output': [],
+                'sources': [],
+                'model': [],
+                'token_info': []
+            }
+            
             for item in items:
-                data_dict = asdict(item)
-                # 将 source 字段改为 task_name
-                data_dict['task_name'] = data_dict.pop('source', None)
-                data_list.append(data_dict)
-
-            # 创建 Dataset 对象
-            dataset = Dataset.from_list(data_list)
-
-            # 获取当前时间戳作为数据集名称
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            task_name = self.config.get('task_name', 'unknown')
-            checkpoint_suffix = f"checkpoint_{len(items)}" if is_checkpoint else "final"
-            dataset_name = f"{task_name}_{timestamp}_{checkpoint_suffix}"
-            # 修复repo_id中的双横线问题
-            repo_id = f"{owner}/{repo_prefix}-{dataset_name}".replace("--", "-")
-
-            # 上传到 HuggingFace Hub
+                item_dict = item.dict()
+                data_dict['id'].append(item.id)
+                data_dict['instruction'].append(item.instruction)
+                data_dict['input'].append(item.input)
+                data_dict['output'].append(item.output)
+                data_dict['refined_output'].append(item.refined_output)
+                data_dict['sources'].append(item.sources)
+                data_dict['model'].append(item.model)
+                data_dict['token_info'].append(json.dumps(asdict(item.token_info)))
+            
+            # 创建Dataset对象
+            dataset = Dataset.from_dict(data_dict)
+            
+            try:
+                # 尝试加载现有数据集
+                existing_dataset = load_dataset(f"{owner}/{dataset_name}", split="train")
+                # 合并新旧数据集
+                dataset = concatenate_datasets([existing_dataset, dataset])
+            except Exception as e:
+                logger.info(f"No existing dataset found or error loading it: {e}")
+                # 如果加载失败，就使用新数据集
+                pass
+            
+            # 推送到Hub
             dataset.push_to_hub(
-                repo_id=repo_id,
-                split=split,
-                token=token,
+                f"{owner}/{dataset_name}",
+                split="train",
+                token=hub_config.get('token'),
                 private=True
             )
-
-            logger.info(f"Successfully pushed {'checkpoint' if is_checkpoint else 'final'} dataset ({len(items)} items) to {repo_id}")
-
+            
+            logger.info(f"Successfully pushed {'checkpoint' if is_checkpoint else 'final'} dataset ({len(items)} items) to {owner}/{dataset_name}")
+            
         except Exception as e:
-            logger.error(f"Error uploading to HuggingFace Hub: {e}")
+            logger.error(f"Error uploading to hub: {str(e)}")
             raise
 
     async def push_to_hub(self, output_file: str) -> None:
