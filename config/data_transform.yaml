@@ -41,7 +41,7 @@ datasets:
     config: ""
     split: "train"
     subset: ""
-    num_samples: 30  # 恢复到处理全部数据
+    num_samples: 10  # 先处理10条数据
     field_mapping:
       instruction: "instruction"
       input: "input"
