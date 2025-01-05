@@ -41,7 +41,7 @@ datasets:
     config: ""
     split: "train"
     subset: ""
-    num_samples: null
+    num_samples: -1  # -1表示处理全部数据
     field_mapping:
       instruction: "instruction"
       input: "input"

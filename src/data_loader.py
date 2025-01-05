@@ -94,7 +94,7 @@ class DataLoader:
             # 加载数据集
             dataset = load_dataset(**load_params, cache_dir=self.common_config.get('hf_cache_dir', None))
             
-            # 如果指定了样本数量，则随机选择
+            # 只有当num_samples > 0时才限制样本数量
             if dataset_config.num_samples > 0:
                 dataset = dataset.shuffle(seed=self.common_config.get('shuffle_seed', 42))
                 dataset = dataset.select(range(dataset_config.num_samples))
