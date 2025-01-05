@@ -25,3 +25,4 @@ echo $PID > $PROJECT_ROOT/logs/transform.pid
 
 echo "Started data transformation process with PID: $PID"
 echo "Check logs at: $PROJECT_ROOT/logs/transform_${TIMESTAMP}.log"
+
