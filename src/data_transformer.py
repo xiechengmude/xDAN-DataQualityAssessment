@@ -349,60 +349,48 @@ class DataTransformer:
         try:
             # 获取配置
             hub_config = self.config.get('output', {}).get('hub_config', {})
-            owner = hub_config.get('owner', 'xDAN2099')
-            repo_prefix = hub_config.get('repo_prefix', 'xDAN-Agentic-DataQuality-')
-            task_name = self.config.get('task_name', 'unknown_task')
-            
-            # 使用固定的仓库名，不再包含时间戳
-            dataset_name = f"{repo_prefix}{task_name}"
+            owner = hub_config.get('owner')
+            repo_prefix = hub_config.get('repo_prefix')
+            split = hub_config.get('split', 'train')
+            token = hub_config.get('token')
+
+            if not all([owner, repo_prefix, token]):
+                raise ValueError("Missing required HuggingFace Hub configuration")
+
+            # 创建数据集字典列表
+            data_list = []
+            for item in items:
+                data_dict = asdict(item)
+                # 将 source 字段改为 task_name
+                data_dict['task_name'] = data_dict.pop('source', None)
+                data_list.append(data_dict)
+
+            # 创建 Dataset 对象
+            dataset = Dataset.from_list(data_list)
+
+            # 使用固定的仓库名
+            task_name = self.config.get('task_name', 'unknown')
+            dataset_name = f"{task_name}"
             if is_checkpoint:
                 dataset_name += "_checkpoint"
-            
-            # 转换数据为Dataset格式
-            data_dict = {
-                'id': [],
-                'instruction': [],
-                'input': [],
-                'output': [],
-                'refined_output': [],
-                'sources': [],
-                'model': [],
-                'token_info': []
-            }
-            
-            for item in items:
-                item_dict = item.dict()
-                data_dict['id'].append(item.id)
-                data_dict['instruction'].append(item.instruction)
-                data_dict['input'].append(item.input)
-                data_dict['output'].append(item.output)
-                data_dict['refined_output'].append(item.refined_output)
-                data_dict['sources'].append(item.sources)
-                data_dict['model'].append(item.model)
-                data_dict['token_info'].append(json.dumps(asdict(item.token_info)))
-            
-            # 创建Dataset对象
-            dataset = Dataset.from_dict(data_dict)
-            
+            repo_id = f"{owner}/{repo_prefix}-{dataset_name}".replace("--", "-")
+
             try:
-                # 尝试加载现有数据集
-                existing_dataset = load_dataset(f"{owner}/{dataset_name}", split="train")
-                # 合并新旧数据集
+                # 尝试加载并合并现有数据集
+                existing_dataset = load_dataset(repo_id, split=split)
                 dataset = concatenate_datasets([existing_dataset, dataset])
             except Exception as e:
-                logger.info(f"No existing dataset found or error loading it: {e}")
-                # 如果加载失败，就使用新数据集
-                pass
-            
-            # 推送到Hub
+                logger.info(f"Creating new dataset: {e}")
+
+            # 上传到 HuggingFace Hub
             dataset.push_to_hub(
-                f"{owner}/{dataset_name}",
-                split="train",
-                token=hub_config.get('token'),
+                repo_id=repo_id,
+                split=split,
+                token=token,
                 private=True
             )
-            
-            logger.info(f"Successfully pushed {'checkpoint' if is_checkpoint else 'final'} dataset ({len(items)} items) to {owner}/{dataset_name}")
+
+            logger.info(f"Successfully pushed {'checkpoint' if is_checkpoint else 'final'} dataset ({len(items)} items) to {repo_id}")
             
         except Exception as e:
             logger.error(f"Error uploading to hub: {str(e)}")
