@@ -37,6 +37,7 @@ async def main():
     parser.add_argument('--config', type=str, required=True, help='Path to config file')
     args = parser.parse_args()
 
+    transformer = None
     try:
         # 加载配置
         config = load_config(args.config)
@@ -55,13 +56,14 @@ async def main():
         except Exception as e:
             logger.error(f"Error during data transformation: {e}")
             raise
-        finally:
-            # 确保关闭连接
-            transformer.close()
             
     except Exception as e:
         logger.error(f"Error during data transformation: {e}")
         raise
+    finally:
+        # 确保关闭连接
+        if transformer:
+            await transformer.close()
 
 if __name__ == "__main__":
     asyncio.run(main())

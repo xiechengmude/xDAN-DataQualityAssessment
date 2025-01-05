@@ -218,18 +218,22 @@ class DataTransformer:
     
     def _create_batches(self) -> List[List[AlpacaItem]]:
         """创建数据批次"""
-        items = self.dataset
-        if not items:
-            raise ValueError("No items to transform")
+        batch_size = self.config.get('concurrency', {}).get('batch_size', 100)
+        batches = []
+        current_batch = []
         
-        logger.info(f"Starting transformation of {len(items)} items")
-        batch_size = self.config.get('batch_size', 10)
+        for item in self.dataset:
+            current_batch.append(item)
+            if len(current_batch) >= batch_size:
+                batches.append(current_batch)
+                current_batch = []
         
-        # 分批处理数据
-        for i in range(0, len(items), batch_size):
-            batch = items[i:i + batch_size]
-            yield batch
-    
+        # 添加最后一个不完整的批次
+        if current_batch:
+            batches.append(current_batch)
+            
+        return batches
+
     async def _transform_batch(self, batch: List[AlpacaItem]) -> List[RefinedAlpacaItem]:
         """转换一批数据"""
         transformed_items = []
