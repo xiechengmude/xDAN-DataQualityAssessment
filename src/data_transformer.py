@@ -324,7 +324,7 @@ class DataTransformer:
         """获取输出文件路径。"""
         output_config = self.config.get('output', {})
         base_dir = output_config.get('base_dir', 'output')
-        task_name = self.config.get('task_name', 'unknown_task')
+        task_name = self.config.get('task_name', 'unknown')
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         
         # 创建输出目录
@@ -378,10 +378,22 @@ class DataTransformer:
             try:
                 # 尝试加载并合并现有数据集
                 existing_dataset = load_dataset(repo_id, split=split)
-                dataset = concatenate_datasets([existing_dataset, dataset])
+                
+                # 获取现有数据集的id列表
+                existing_ids = set(existing_dataset['id'])
+                
+                # 过滤掉已存在的数据
+                new_dataset = dataset.filter(lambda x: x['id'] not in existing_ids)
+                
+                # 合并新旧数据集
+                if len(new_dataset) > 0:
+                    dataset = concatenate_datasets([existing_dataset, new_dataset])
+                else:
+                    dataset = existing_dataset
+                    logger.info(f"No new data to add, all {len(existing_ids)} items already exist")
             except Exception as e:
                 logger.info(f"Creating new dataset: {e}")
-
+            
             # 上传到 HuggingFace Hub
             dataset.push_to_hub(
                 repo_id=repo_id,
