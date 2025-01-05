@@ -24,7 +24,7 @@ openai:
 
 # 并发配置
 concurrency:
-  max_concurrent_requests: 50
+  max_concurrent_requests: 200
   batch_size: 200
   request_timeout: 60
   max_retries: 3
@@ -32,8 +32,8 @@ concurrency:
 
 # 速率限制
 rate_limits:
-  tokens_per_minute: 10000
-  requests_per_minute: 1000
+  tokens_per_minute: 200000
+  requests_per_minute: 2000
 
 # 数据集配置
 datasets:
@@ -41,20 +41,11 @@ datasets:
     config: ""
     split: "train"
     subset: ""
-    num_samples: 10
+    num_samples: null
     field_mapping:
       instruction: "instruction"
       input: "input"
       output: "output"
-  - name: "xDAN2099/xDAN-Agentic-Chat-QwQ-LongCoT-130K-v2"
-    config: ""
-    split: "train"
-    subset: ""
-    num_samples: 10
-    field_mapping:
-      instruction: "problem"
-      input: ""
-      output: "outputs"
 
 # 数据集通用配置
 dataset_common:
@@ -87,7 +78,7 @@ output:
   base_dir: "output"  # 基础输出目录
   save_local: true  # 同时保存到本地，方便调试
   push_to_hub: true  # 是否推送到Hugging Face Hub
-  save_interval: 20  # 每处理多少条数据保存一次
+  save_interval: 600
   hub_config:
     owner: "xDAN2099"  # Hugging Face Hub 用户名/组织名
     repo_prefix: "xDAN-Agentic-DataQuality-"  # 仓库名前缀
