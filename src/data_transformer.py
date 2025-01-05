@@ -29,6 +29,7 @@ class DataTransformer:
         """
         self.config = config
         self.dataset = dataset
+        self.current_id = 0  # 添加id计数器
         
         # 初始化OpenAI客户端
         openai_config = config.get('openai', {})
@@ -215,12 +216,15 @@ class DataTransformer:
             if not self.validate_item(item_dict):
                 raise ValueError("Invalid input data")
             
+            # 增加id
+            self.current_id += 1
+            alpaca_item.id = self.current_id
+            
             refined_output, token_info = await self.refine_output(alpaca_item)
             return RefinedAlpacaItem.from_alpaca_item(
                 item=alpaca_item,
                 refined_output=refined_output,
                 token_info=token_info,
-                source=self.config.get('task_name', 'data_transform'),
                 model_name=self.config.get('openai', {}).get('model_name', 'gpt-3.5-turbo'),
                 sources=dataset_name if dataset_name else "unknown"
             )

@@ -33,7 +33,6 @@ class RefinedAlpacaItem:
     refined_output: str
     token_info: TokenInfo
     input: Optional[str] = None
-    source: str = "data_transform"  # 默认来源
     model_name: str = "gpt-3.5-turbo"  # 默认模型
     sources: Optional[str] = None
     timestamp: Optional[str] = None
@@ -41,7 +40,7 @@ class RefinedAlpacaItem:
 
     @classmethod
     def from_alpaca_item(cls, item: AlpacaItem, refined_output: str, token_info: TokenInfo, 
-                        source: Optional[str] = None, model_name: Optional[str] = None,
+                        model_name: Optional[str] = None,
                         sources: Optional[str] = None):
         """从原始 AlpacaItem 创建 RefinedAlpacaItem"""
         return cls(
@@ -51,7 +50,6 @@ class RefinedAlpacaItem:
             output=item.output,
             refined_output=refined_output,
             token_info=token_info,
-            source=source or "data_transform",
             model_name=model_name or "xDAN-L3-Chat",
             sources=sources,
             timestamp=datetime.now().isoformat(),
