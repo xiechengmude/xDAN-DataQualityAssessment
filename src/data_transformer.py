@@ -9,6 +9,7 @@ from openai import AsyncOpenAI
 from dataclasses import asdict
 from datetime import datetime
 from datasets import Dataset
+from tqdm import tqdm
 from typing import List, Dict, Any, Optional, Tuple
 
 from .data_types import AlpacaItem, RefinedAlpacaItem, TokenInfo
@@ -257,23 +258,29 @@ class DataTransformer:
             batches = self._create_batches()
             total_batches = len(batches)
             
-            for i, batch in enumerate(batches, 1):
-                # 转换当前批次
-                batch_items = await self._transform_batch(batch)
-                transformed_items.extend(batch_items)
-                
-                # 记录进度
-                logger.info(f"Processed batch {i}/{total_batches} ({len(transformed_items)} items total)")
-                
-                # 检查是否需要间隔保存
-                if len(transformed_items) % save_interval == 0:
-                    if save_local:
-                        output_file = self._get_output_file_path()
-                        self._save_to_json(transformed_items, output_file)
-                        logger.info(f"Saved checkpoint: {len(transformed_items)} items to {output_file}")
+            # 使用tqdm创建进度条
+            with tqdm(total=total_batches, desc="Transforming data") as pbar:
+                for i, batch in enumerate(batches, 1):
+                    # 转换当前批次
+                    batch_items = await self._transform_batch(batch)
+                    transformed_items.extend(batch_items)
                     
-                    if push_to_hub:
-                        await self._upload_to_hub(transformed_items, is_checkpoint=True)
+                    # 更新进度条
+                    pbar.update(1)
+                    pbar.set_postfix({
+                        'Items': len(transformed_items),
+                        'Current Batch': f"{i}/{total_batches}"
+                    })
+                    
+                    # 检查是否需要间隔保存
+                    if len(transformed_items) % save_interval == 0:
+                        if save_local:
+                            output_file = self._get_output_file_path()
+                            self._save_to_json(transformed_items, output_file)
+                            logger.info(f"Saved checkpoint: {len(transformed_items)} items to {output_file}")
+                        
+                        if push_to_hub:
+                            await self._upload_to_hub(transformed_items, is_checkpoint=True)
             
             # 最终保存和上传
             if save_local:
