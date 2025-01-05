@@ -32,7 +32,7 @@ class DataTransformer:
         
         # 初始化OpenAI客户端
         openai_config = config.get('openai', {})
-        self.client = AsyncOpenAI(
+        self._openai_client = AsyncOpenAI(
             base_url=openai_config.get('base_url', 'http://35.240.173.116:7220/v1'),
             api_key=openai_config.get('api_key', 'dummy-key'),  # API密钥
             timeout=openai_config.get('timeout', 60.0),  # 超时设置
@@ -46,7 +46,7 @@ class DataTransformer:
     
     async def close(self):
         """关闭OpenAI客户端连接"""
-        await self.client.close()
+        await self._openai_client.close()
 
     def _load_config(self, config_path: str) -> Dict:
         """Load configuration from yaml file."""
@@ -118,6 +118,11 @@ class DataTransformer:
 
     async def refine_output(self, item: AlpacaItem) -> Tuple[str, TokenInfo]:
         """使用LLM优化输出"""
+        openai_config = self.config.get('openai', {})
+        model = openai_config.get('model_name', 'gpt-3.5-turbo')
+        max_tokens = openai_config.get('max_tokens', 2000)
+        temperature = openai_config.get('temperature', 0.7)
+        
         try:
             # 加载prompt模板
             template_name = self.config.get('transform', {}).get('prompt_template', 'structured_analysis')
@@ -137,15 +142,15 @@ class DataTransformer:
             )
 
             # 调用LLM
-            openai_config = self.config.get('openai', {})
-            response = await self.client.chat.completions.create(
-                model=openai_config.get('model_name', 'gpt-3.5-turbo'),
+            client = self._get_client()
+            response = await client.chat.completions.create(
+                model=model,
                 messages=[
                     {"role": "system", "content": "You are a helpful assistant."},
                     {"role": "user", "content": prompt}
                 ],
-                temperature=openai_config.get('temperature', 0.7),
-                max_tokens=openai_config.get('max_tokens', 2000)
+                max_tokens=max_tokens,
+                temperature=temperature
             )
             
             # 提取回答
@@ -168,6 +173,10 @@ class DataTransformer:
             logger.error(f"Error in refine_output: {str(e)}")
             raise
     
+    def _get_client(self) -> AsyncOpenAI:
+        """获取或创建OpenAI客户端"""
+        return self._openai_client
+
     def _calculate_cost(self, usage: Dict[str, Any]) -> float:
         """计算预估成本"""
         # 从配置中获取价格信息
@@ -189,8 +198,11 @@ class DataTransformer:
             tasks.append(self._transform_item(item, dataset_name=dataset_names[i] if dataset_names else None))
         
         try:
-            results = await asyncio.gather(*tasks)
-            return results
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+            return [
+                item for item in results 
+                if not isinstance(item, Exception)
+            ]
         except Exception as e:
             logger.error(f"Batch processing error: {str(e)}")
             raise
@@ -216,6 +228,25 @@ class DataTransformer:
             logger.error(f"Error transforming item: {str(e)}")
             raise
     
+    async def _transform_batch(self, batch: List[AlpacaItem]) -> List[RefinedAlpacaItem]:
+        """转换一批数据"""
+        try:
+            # 并行处理所有items
+            tasks = [
+                self._transform_item(item, item.metadata.get('dataset_name', 'unknown'))
+                for item in batch
+            ]
+            transformed_items = await asyncio.gather(*tasks, return_exceptions=True)
+            
+            # 过滤出成功的结果
+            return [
+                item for item in transformed_items 
+                if not isinstance(item, Exception)
+            ]
+        except Exception as e:
+            logger.error(f"Error in batch transformation: {str(e)}")
+            return []
+
     def _create_batches(self) -> List[List[AlpacaItem]]:
         """创建数据批次"""
         batch_size = self.config.get('concurrency', {}).get('batch_size', 100)
@@ -234,22 +265,6 @@ class DataTransformer:
             
         return batches
 
-    async def _transform_batch(self, batch: List[AlpacaItem]) -> List[RefinedAlpacaItem]:
-        """转换一批数据"""
-        transformed_items = []
-        for item in batch:
-            try:
-                # 获取数据集名称
-                dataset_name = item.metadata.get('dataset_name', 'unknown')
-                
-                # 转换单个数据项
-                transformed_item = await self._transform_item(item, dataset_name)
-                transformed_items.append(transformed_item)
-            except Exception as e:
-                logger.error(f"Error transforming item in batch: {str(e)}")
-                continue
-        return transformed_items
-    
     async def transform_dataset(self) -> List[RefinedAlpacaItem]:
         """转换数据集"""
         try:
