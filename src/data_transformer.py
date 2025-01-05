@@ -369,7 +369,8 @@ class DataTransformer:
             task_name = self.config.get('task_name', 'unknown')
             checkpoint_suffix = f"checkpoint_{len(items)}" if is_checkpoint else "final"
             dataset_name = f"{task_name}_{timestamp}_{checkpoint_suffix}"
-            repo_id = f"{owner}/{repo_prefix}-{dataset_name}"
+            # 修复repo_id中的双横线问题
+            repo_id = f"{owner}/{repo_prefix}-{dataset_name}".replace("--", "-")
 
             # 上传到 HuggingFace Hub
             dataset.push_to_hub(
@@ -378,6 +379,7 @@ class DataTransformer:
                 token=token,
                 private=True
             )
+
             logger.info(f"Successfully pushed {'checkpoint' if is_checkpoint else 'final'} dataset ({len(items)} items) to {repo_id}")
 
         except Exception as e:
