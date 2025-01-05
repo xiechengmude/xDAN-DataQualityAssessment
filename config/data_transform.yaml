@@ -24,8 +24,8 @@ openai:
 
 # 并发配置
 concurrency:
-  max_concurrent_requests: 10  # 恢复到200并发
-  batch_size: 10  # 恢复到200批量
+  max_concurrent_requests: 200  # 恢复到200并发
+  batch_size: 200  # 恢复到200批量
   request_timeout: 60
   max_retries: 3
   retry_delay: 1
@@ -41,7 +41,7 @@ datasets:
     config: ""
     split: "train"
     subset: ""
-    num_samples: 10  # 先处理10条数据
+    num_samples: -1  # 恢复到处理全部数据
     field_mapping:
       instruction: "instruction"
       input: "input"
