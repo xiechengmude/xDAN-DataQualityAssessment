@@ -41,7 +41,7 @@ datasets:
     config: ""
     split: "train"
     subset: ""
-    num_samples: 2
+    num_samples: 10
     field_mapping:
       instruction: "instruction"
       input: "input"
@@ -50,7 +50,7 @@ datasets:
     config: ""
     split: "train"
     subset: ""
-    num_samples: 2
+    num_samples: 10
     field_mapping:
       instruction: "problem"
       input: ""
@@ -85,10 +85,12 @@ transform:
 # 输出配置
 output:
   base_dir: "output"  # 基础输出目录
-  save_local: false  # 不保存到本地
+  save_local: true  # 同时保存到本地，方便调试
   push_to_hub: true  # 是否推送到Hugging Face Hub
+  save_interval: 20  # 每处理多少条数据保存一次
   hub_config:
-    repo_id: "xDAN2099"  # Hugging Face Hub 仓库ID
+    owner: "xDAN2099"  # Hugging Face Hub 用户名/组织名
+    repo_prefix: "xDAN-Agentic-DataQuality-"  # 仓库名前缀
     split: "train"  # 数据集分割
     token: "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"  # Hugging Face Hub token
   save_format: "json"  # 支持: json, jsonl, parquet

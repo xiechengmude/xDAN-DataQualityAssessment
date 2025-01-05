@@ -21,22 +21,20 @@ def load_config(config_path: str) -> dict:
 def get_output_path(config: dict) -> Path:
     """根据配置生成输出路径。"""
     output_config = config.get('output', {})
-    base_dir = output_config.get('base_dir', 'output')  # 修改默认值为 'output'
+    base_dir = output_config.get('base_dir', 'output')
     file_naming = output_config.get('file_naming', {})
     
     # 获取文件命名组件
-    dataset_name = config.get('dataset', {}).get('name', 'unknown')
+    task_name = config.get('task_name', 'unknown')
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     
     # 构建文件名
-    filename = f"{dataset_name}_{timestamp}.json"
+    filename = f"{task_name}_{timestamp}.json"
     return Path(base_dir) / filename
 
 async def main():
     parser = argparse.ArgumentParser(description='Transform dataset using LLM.')
     parser.add_argument('--config', type=str, required=True, help='Path to config file')
-    parser.add_argument('--no-push-to-hub', action='store_true', help='Do not push results to HuggingFace Hub')
-    parser.add_argument('--save-local', action='store_true', help='Save results to local file')
     args = parser.parse_args()
 
     try:
@@ -50,29 +48,19 @@ async def main():
         # 初始化转换器并传入数据集
         transformer = DataTransformer(config, dataset)
         
-        # 转换数据
-        transformed_items = await transformer.transform_dataset()
-        logger.info(f"Successfully transformed {len(transformed_items)} items")
-        
-        # 获取输出文件路径
-        output_file = transformer._get_output_file_path()
-        
-        # 根据配置和命令行参数决定是否保存到本地
-        save_local = args.save_local or config.get('output', {}).get('save_local', False)
-        if save_local:
-            transformer._save_to_json(transformed_items, output_file)
-            logger.info(f"Saved {len(transformed_items)} transformed items to {output_file}")
-        
-        # 默认推送到Hub，除非指定了--no-push-to-hub
-        if not args.no_push_to_hub:
-            logger.info("Pushing results to HuggingFace Hub...")
-            await transformer.push_to_hub(output_file)
-            logger.info("Results pushed to HuggingFace Hub successfully!")
-        
-        logger.info("Data transformation and analysis completed successfully!")
-        
+        # 执行转换
+        try:
+            transformed_items = await transformer.transform_dataset()
+            logger.info("Data transformation completed successfully")
+        except Exception as e:
+            logger.error(f"Error during data transformation: {e}")
+            raise
+        finally:
+            # 确保关闭连接
+            transformer.close()
+            
     except Exception as e:
-        logger.error(f"Error during data transformation: {str(e)}")
+        logger.error(f"Error during data transformation: {e}")
         raise
 
 if __name__ == "__main__":

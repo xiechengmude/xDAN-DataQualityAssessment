@@ -248,36 +248,41 @@ class DataTransformer:
     async def transform_dataset(self) -> List[RefinedAlpacaItem]:
         """转换数据集"""
         try:
-            # 获取保存间隔
-            save_interval = self.config.get('output', {}).get('save_interval', 500)
             transformed_items = []
+            save_interval = self.config.get('output', {}).get('save_interval', 100)
+            save_local = self.config.get('output', {}).get('save_local', True)
             
-            # 分批处理数据
-            batches = list(self._create_batches())
-            with tqdm(total=len(batches), desc="Transforming data") as pbar:
-                for batch in batches:
-                    # 转换当前批次
-                    batch_items = await self._transform_batch(batch)
-                    transformed_items.extend(batch_items)
-                    
-                    # 如果达到保存间隔且需要上传到 HF Hub，则进行保存和上传
-                    if len(transformed_items) >= save_interval and self.config.get('output', {}).get('push_to_hub', True):
-                        await self._upload_to_hub(transformed_items)
-                        logger.info(f"Uploaded {len(transformed_items)} items to HuggingFace Hub")
-                        # 清空已保存的数据
-                        transformed_items = []
-                    
-                    pbar.update(1)
+            # 创建批次
+            batches = self._create_batches()
+            total_batches = len(batches)
             
-            # 处理剩余的数据
-            if transformed_items and self.config.get('output', {}).get('push_to_hub', True):
+            for i, batch in enumerate(batches, 1):
+                # 转换当前批次
+                batch_items = await self._transform_batch(batch)
+                transformed_items.extend(batch_items)
+                
+                # 记录进度
+                logger.info(f"Processed batch {i}/{total_batches} ({len(transformed_items)} items total)")
+                
+                # 检查是否需要间隔保存
+                if save_local and len(transformed_items) % save_interval == 0:
+                    output_file = self._get_output_file_path()
+                    self._save_to_json(transformed_items, output_file)
+                    logger.info(f"Saved {len(transformed_items)} items to {output_file}")
+            
+            # 最终保存和上传
+            if save_local:
+                output_file = self._get_output_file_path()
+                self._save_to_json(transformed_items, output_file)
+                logger.info(f"Final save: {len(transformed_items)} items to {output_file}")
+            
+            if self.config.get('output', {}).get('push_to_hub', False):
                 await self._upload_to_hub(transformed_items)
-                logger.info(f"Uploaded {len(transformed_items)} items to HuggingFace Hub")
             
             return transformed_items
             
         except Exception as e:
-            logger.error(f"Error in transform_dataset: {str(e)}")
+            logger.error(f"Error in transform_dataset: {e}")
             raise
     
     def _get_output_file_path(self) -> str:
@@ -304,11 +309,12 @@ class DataTransformer:
         try:
             # 获取配置
             hub_config = self.config.get('output', {}).get('hub_config', {})
-            repo_id = hub_config.get('repo_id')
+            owner = hub_config.get('owner')
+            repo_prefix = hub_config.get('repo_prefix')
             split = hub_config.get('split', 'train')
             token = hub_config.get('token')
 
-            if not repo_id or not token:
+            if not all([owner, repo_prefix, token]):
                 raise ValueError("Missing required HuggingFace Hub configuration")
 
             # 创建数据集字典列表
@@ -324,7 +330,9 @@ class DataTransformer:
 
             # 获取当前时间戳作为数据集名称
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            dataset_name = f"task_data_transform_{timestamp}"
+            task_name = self.config.get('task_name', 'unknown')
+            dataset_name = f"{task_name}_{timestamp}"
+            repo_id = f"{owner}/{repo_prefix}-{dataset_name}"
 
             # 上传到 HuggingFace Hub
             dataset.push_to_hub(
@@ -333,9 +341,10 @@ class DataTransformer:
                 token=token,
                 private=True
             )
+            logger.info(f"Successfully pushed dataset to {repo_id}")
 
         except Exception as e:
-            logger.error(f"Error uploading to HuggingFace Hub: {str(e)}")
+            logger.error(f"Error uploading to HuggingFace Hub: {e}")
             raise
 
     async def push_to_hub(self, output_file: str) -> None:
