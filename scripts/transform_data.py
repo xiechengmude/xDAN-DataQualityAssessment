@@ -2,7 +2,6 @@
 import argparse
 import asyncio
 import logging
-import logging.config
 import os
 import yaml
 from pathlib import Path
@@ -11,19 +10,10 @@ from src.data_transformer import DataTransformer
 from src.data_loader import DataLoader
 
 # 配置日志记录
-def setup_logging():
-    """设置日志配置"""
-    logging.basicConfig(level=logging.INFO)
-    logging.getLogger("httpx").setLevel(logging.WARNING)
-    logging_config_path = Path("config/logging.yaml")
-    if logging_config_path.exists():
-        with open(logging_config_path, 'r') as f:
-            config = yaml.safe_load(f)
-            # 确保日志目录存在
-            Path("logs").mkdir(exist_ok=True)
-            logging.config.dictConfig(config)
-    else:
-        logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.INFO)
+# 设置httpx的日志级别为WARNING，避免显示每次的POST请求
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logger = logging.getLogger(__name__)
 
 def load_config(config_path: str) -> dict:
     """加载配置文件。"""
@@ -46,8 +36,6 @@ def get_output_path(config: dict) -> Path:
 
 async def main():
     """主函数"""
-    # 设置日志
-    setup_logging()
     parser = argparse.ArgumentParser(description='Transform dataset using LLM.')
     parser.add_argument('--config', type=str, required=True, help='Path to config file')
     args = parser.parse_args()
@@ -67,15 +55,12 @@ async def main():
         # 执行转换
         try:
             transformed_items = await transformer.transform_dataset()
-            logger = logging.getLogger(__name__)
             logger.info("Data transformation completed successfully")
         except Exception as e:
-            logger = logging.getLogger(__name__)
             logger.error(f"Error during data transformation: {e}")
             raise
             
     except Exception as e:
-        logger = logging.getLogger(__name__)
         logger.error(f"Error during data transformation: {e}")
         raise
     finally:
