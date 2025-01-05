@@ -251,6 +251,7 @@ class DataTransformer:
             transformed_items = []
             save_interval = self.config.get('output', {}).get('save_interval', 100)
             save_local = self.config.get('output', {}).get('save_local', True)
+            push_to_hub = self.config.get('output', {}).get('push_to_hub', False)
             
             # 创建批次
             batches = self._create_batches()
@@ -265,10 +266,14 @@ class DataTransformer:
                 logger.info(f"Processed batch {i}/{total_batches} ({len(transformed_items)} items total)")
                 
                 # 检查是否需要间隔保存
-                if save_local and len(transformed_items) % save_interval == 0:
-                    output_file = self._get_output_file_path()
-                    self._save_to_json(transformed_items, output_file)
-                    logger.info(f"Saved {len(transformed_items)} items to {output_file}")
+                if len(transformed_items) % save_interval == 0:
+                    if save_local:
+                        output_file = self._get_output_file_path()
+                        self._save_to_json(transformed_items, output_file)
+                        logger.info(f"Saved checkpoint: {len(transformed_items)} items to {output_file}")
+                    
+                    if push_to_hub:
+                        await self._upload_to_hub(transformed_items, is_checkpoint=True)
             
             # 最终保存和上传
             if save_local:
@@ -276,8 +281,8 @@ class DataTransformer:
                 self._save_to_json(transformed_items, output_file)
                 logger.info(f"Final save: {len(transformed_items)} items to {output_file}")
             
-            if self.config.get('output', {}).get('push_to_hub', False):
-                await self._upload_to_hub(transformed_items)
+            if push_to_hub:
+                await self._upload_to_hub(transformed_items, is_checkpoint=False)
             
             return transformed_items
             
@@ -304,8 +309,13 @@ class DataTransformer:
         with open(output_file, 'w', encoding='utf-8') as f:
             json.dump([item.dict() for item in items], f, ensure_ascii=False, indent=2)
     
-    async def _upload_to_hub(self, items: List[RefinedAlpacaItem]) -> None:
-        """上传数据到 HuggingFace Hub"""
+    async def _upload_to_hub(self, items: List[RefinedAlpacaItem], is_checkpoint: bool = False) -> None:
+        """上传数据到 HuggingFace Hub
+        
+        Args:
+            items: 要上传的数据项列表
+            is_checkpoint: 是否是检查点数据，如果是则添加checkpoint标记到仓库名
+        """
         try:
             # 获取配置
             hub_config = self.config.get('output', {}).get('hub_config', {})
@@ -331,7 +341,8 @@ class DataTransformer:
             # 获取当前时间戳作为数据集名称
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             task_name = self.config.get('task_name', 'unknown')
-            dataset_name = f"{task_name}_{timestamp}"
+            checkpoint_suffix = f"checkpoint_{len(items)}" if is_checkpoint else "final"
+            dataset_name = f"{task_name}_{timestamp}_{checkpoint_suffix}"
             repo_id = f"{owner}/{repo_prefix}-{dataset_name}"
 
             # 上传到 HuggingFace Hub
@@ -341,7 +352,7 @@ class DataTransformer:
                 token=token,
                 private=True
             )
-            logger.info(f"Successfully pushed dataset to {repo_id}")
+            logger.info(f"Successfully pushed {'checkpoint' if is_checkpoint else 'final'} dataset ({len(items)} items) to {repo_id}")
 
         except Exception as e:
             logger.error(f"Error uploading to HuggingFace Hub: {e}")
