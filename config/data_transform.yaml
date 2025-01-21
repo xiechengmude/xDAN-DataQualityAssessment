@@ -31,9 +31,9 @@ rate_limits:
 datasets:
   - name: "HuggingFaceH4/MATH-500"  # 数据集名称
     config: ""  # 数据集配置名称
-    split: "train"  # 数据集分片
+    split: "test"  # 数据集分片
     subset: ""  # 数据集子集
-    num_samples: 5  # 加载的样本数量，-1表示全部加载
+    num_samples: 10  # 加载的样本数量，-1表示全部加载
     field_mapping:  # 字段映射配置
       instruction: "problem"
       input: ""

@@ -34,8 +34,8 @@ class DataTransformer:
         # 初始化OpenAI客户端
         openai_config = config.get('openai', {})
         self._openai_client = AsyncOpenAI(
-            base_url=openai_config.get('base_url', 'http://35.240.173.116:7220/v1'),
-            api_key=openai_config.get('api_key', 'dummy-key'),  # API密钥
+            base_url=openai_config['api_base'],  # 直接使用配置文件中的api_base
+            api_key=openai_config['api_key'],
             timeout=openai_config.get('timeout', 60.0),  # 超时设置
             max_retries=openai_config.get('max_retries', 2)  # 重试次数
         )
@@ -320,12 +320,15 @@ class DataTransformer:
             start_offset = 0
             try:
                 # 尝试从checkpoint数据集获取已处理的数量
-                repo_id = f"{self.config['output']['hub_config']['owner']}/{self.config['output']['hub_config']['repo_prefix']}-{self.config['task_name']}_checkpoint"
-                checkpoint_dataset = load_dataset(repo_id.replace("--", "-"), split="train")
+                split = self.dataset[0].metadata.get('split', 'train') if self.dataset else 'train'
+                dataset_name = self.dataset[0].metadata.get('dataset_name', 'unknown').split('/')[-1] if self.dataset else 'unknown'
+                repo_id = f"{self.config['output']['hub_config']['owner']}/{self.config['output']['hub_config']['repo_prefix']}-{dataset_name}-{self.config['task_name']}_{split}_checkpoint"
+                repo_id = repo_id.replace("--", "-")  # 替换双横线
+                checkpoint_dataset = load_dataset(repo_id, split="train")
                 if checkpoint_dataset is not None:
                     start_offset = len(checkpoint_dataset)
                     self.current_id = start_offset
-                    logger.info(f"Found existing checkpoint with {start_offset} items, continuing from there")
+                    logger.info(f"Found existing checkpoint with {start_offset} items for dataset {dataset_name} split {split}, continuing from there")
             except Exception as e:
                 logger.info(f"No existing checkpoint found: {e}")
             
@@ -421,36 +424,37 @@ class DataTransformer:
             items: 要上传的数据项列表
             is_checkpoint: 是否是检查点数据
         """
+        if not items:
+            logger.warning("No items to upload")
+            return
+
         try:
-            # 获取配置
-            hub_config = self.config.get('output', {}).get('hub_config', {})
-            owner = hub_config.get('owner')
-            repo_prefix = hub_config.get('repo_prefix')
-            split = hub_config.get('split', 'train')
-            token = hub_config.get('token')
-
-            if not all([owner, repo_prefix, token]):
-                raise ValueError("Missing required HuggingFace Hub configuration")
-
+            # 获取数据集名称和分片信息
+            dataset_name = items[0].metadata.get('dataset_name', 'unknown').split('/')[-1]
+            split = items[0].metadata.get('split', 'train')
+            
+            # 构建repo_id
+            hub_config = self.config['output']['hub_config']
+            task_name = self.config['task_name']
+            
+            # 构建repo名称：owner/prefix-datasetname-taskname[-checkpoint]
+            repo_name = f"{hub_config['repo_prefix']}-{dataset_name}-{task_name}"
+            if is_checkpoint:
+                repo_name = f"{repo_name}-{split}_checkpoint"
+            
+            repo_id = f"{hub_config['owner']}/{repo_name}".replace("--", "-")
+            
             # 创建数据集字典列表
             data_list = []
             for item in items:
                 data_dict = asdict(item)
-                # 将 source 字段改为 task_name
-                data_dict['task_name'] = data_dict.pop('source', None)
+                data_dict['task_name'] = task_name
                 data_list.append(data_dict)
 
             # 创建 Dataset 对象
             new_dataset = Dataset.from_list(data_list)
-
-            # 使用固定的仓库名
-            task_name = self.config.get('task_name', 'unknown')
-            dataset_name = f"{task_name}"
-            if is_checkpoint:
-                dataset_name += "_checkpoint"
-            repo_id = f"{owner}/{repo_prefix}-{dataset_name}".replace("--", "-")
-
             final_dataset = new_dataset
+
             try:
                 # 尝试加载现有数据集
                 existing_dataset = load_dataset(repo_id, split=split)
@@ -474,7 +478,7 @@ class DataTransformer:
             final_dataset.push_to_hub(
                 repo_id=repo_id,
                 split=split,
-                token=token,
+                token=hub_config['token'],
                 private=True
             )
 
