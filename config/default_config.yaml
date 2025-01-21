@@ -1,10 +1,10 @@
 # OpenAI配置
 openai:
-  model_name: "deepseek-chat"
-  max_tokens: 2000
+  model_name: "deepseek-reasoner"
+  max_tokens: 3000
   temperature: 0.7
   api_key: "sk-cUaGu4E02RDTCxnnC3398860D5944953A4Fa9c5dA13aF93e"
-  api_base: "http://35.240.173.116:7220/v1"
+  api_base: "http://35.198.249.220:7220/v1"
   pricing:
     input_price_per_million: 1.0  # 每百万tokens的输入价格
     output_price_per_million: 2.0  # 每百万tokens的输出价格
@@ -29,25 +29,25 @@ rate_limits:
 # 数据集配置
 datasets:
   # 可以配置多个数据集
-  - name: "tatsu-lab/alpaca"  # 数据集名称
+  - name: "HuggingFaceH4/MATH-500"  # 数据集名称
     config: ""  # 数据集配置名称
     split: "train"  # 数据集分片
     subset: ""  # 数据集子集
     num_samples: 5  # 加载的样本数量，-1表示全部加载
     field_mapping:  # 字段映射配置
-      instruction: "instruction"
-      input: "input"
-      output: "output"
-    
-  - name: "yahma/alpaca-cleaned"
-    config: ""
-    split: "train"
-    subset: ""
-    num_samples: 5
-    field_mapping:
-      instruction: "instruction"
+      instruction: "problem"
       input: ""
-      output: "output"
+      output: "solution"
+    
+  # - name: "yahma/alpaca-cleaned"
+  #   config: ""
+  #   split: "train"
+  #   subset: ""
+  #   num_samples: 5
+  #   field_mapping:
+  #     instruction: "instruction"
+  #     input: ""
+  #     output: "output"
 
 # 数据集通用配置
 dataset_common:
@@ -67,7 +67,7 @@ output:
   save_format: "json"  # 支持: json, jsonl, parquet
   include_metadata: true
   file_naming:
-    task_name: "quality_assessment"  # 任务名称
+    task_name: "xDAN-Deepseek-r1-math500-quality_assessment"  # 任务名称
     include_timestamp: true  # 是否包含时间戳
     include_dataset_info: true  # 是否包含数据集信息
     include_sample_count: true  # 是否包含样本数量
