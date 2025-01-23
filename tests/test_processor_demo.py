@@ -38,7 +38,12 @@ def setup_logging():
 @pytest.mark.asyncio
 async def test_single_item():
     """测试单个数据项的处理"""
-    logger.info("开始单项测试...")
+    # 设置日志级别
+    logging.basicConfig(level=logging.DEBUG,
+                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    logger.setLevel(logging.DEBUG)
+    
+    logger.debug("开始单项测试...")
     
     # 加载配置
     config_path = project_root / "config" / "test_config.yaml"
@@ -58,15 +63,16 @@ async def test_single_item():
     
     # 处理数据
     logger.info("开始处理测试数据...")
+    logger.info(f"测试项内容: {test_item.instruction}, {test_item.input}, {test_item.output}")
     result = await processor.process_single_item(test_item, "test_dataset", 1)
     
     # 打印结果
-    logger.info("处理结果:")
-    logger.info(f"质量指标: {result.quality_metrics}")
+    logger.info("\n处理结果:")
+    logger.info(f"质量指标:\n{result.quality_metrics}")
     logger.info(f"总分: {result.score}")
     logger.info(f"分类: {result.category}")
-    logger.info(f"处理后输出: {result.processed_output}")
-    logger.info(f"处理元数据: {result.metadata}")
+    logger.info(f"处理后输出:\n{result.processed_output}")
+    logger.info(f"处理元数据:\n{result.metadata}")
     
     # 生成任务名称
     task_name = get_task_name()

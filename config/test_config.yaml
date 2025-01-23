@@ -1,11 +1,10 @@
-
 # OpenAI配置
 openai:
   model_name: "deepseek-chat"
   max_tokens: 4096
   temperature: 0.7
-  api_key: "sk-cUaGu4E02RDTCxnnC3398860D5944953A4Fa9c5dA13aF93e"
-  api_base: "http://35.240.173.116:7220/v1"
+  api_key: "sk-e572bd56dd184b8a994eda5b994f772a"
+  api_base: "https://api.deepseek.com/v1"
 
 
   #claude-3-5-sonnet-20241022

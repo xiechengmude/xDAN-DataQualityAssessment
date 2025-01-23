@@ -7,8 +7,10 @@ openai:
   model_name: "deepseek-reasoner"
   max_tokens: 8192
   temperature: 0.7
-  api_key: "sk-cUaGu4E02RDTCxnnC3398860D5944953A4Fa9c5dA13aF93e"
-  api_base: "http://35.198.249.220:7220/v1"
+  # api_key: "sk-cUaGu4E02RDTCxnnC3398860D5944953A4Fa9c5dA13aF93e"
+  api_key: "sk-e572bd56dd184b8a994eda5b994f772a"
+  api_base: "https://api.deepseek.com/v1"
+  # api_base: "http://35.198.249.220:7220/v1"
   pricing:
     input_price_per_million: 1.0  # 每百万tokens的输入价格
     output_price_per_million: 2.0  # 每百万tokens的输出价格
@@ -16,9 +18,9 @@ openai:
 
 # 并发配置
 concurrency:
-  max_concurrent_requests: 200  # 高速模式
-  batch_size: 200  # 高速模式批量
-  request_timeout: 60
+  max_concurrent_requests: 50  # 降低并发数
+  batch_size: 50  # 降低批量大小
+  request_timeout: 120  # 增加超时时间
   max_retries: 3
   retry_delay: 1
 
@@ -33,7 +35,7 @@ datasets:
     config: ""  # 数据集配置名称
     split: "test"  # 数据集分片
     subset: ""  # 数据集子集
-    num_samples: 50  # 加载的样本数量，-1表示全部加载
+    num_samples: -1  # 加载的样本数量，-1表示全部加载
     field_mapping:  # 字段映射配置
       instruction: "problem"
       input: ""
@@ -62,13 +64,13 @@ transform:
     - output
   optional_fields:  # 可选字段
     - input
-  prompt_template: "direct_refined_answer"  # 使用的prompt模板名称
+  prompt_template: "direct_refined_answer_cot"  # 使用的prompt模板名称
   prompt_templates:
     structured_analysis:  # 结构化分析模板
       path: "prompt/transformation/structured_analysis.md"
       description: "将问答对转换为结构化的分析格式，包含分析、解决、验证和最终答案四个部分"
-    direct_refined_answer:  # 简洁回答模板
-      path: "prompt/transformation/direct_refined_answer.md"
+    direct_refined_answer_cot:  # 简洁回答模板
+      path: "prompt/transformation/direct_refined_answer_cot.md"
       description: "生成简洁明了的回答，直接针对问题要点"
     long_cot:  # 详细的Chain-of-Thought分析模板
       path: "prompt/transformation/long_cot_shot_en.md"

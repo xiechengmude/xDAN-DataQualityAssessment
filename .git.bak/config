@@ -1,0 +1,22 @@
+[core]
+	repositoryformatversion = 0
+	filemode = true
+	bare = false
+	logallrefupdates = true
+	ignorecase = true
+	precomposeunicode = true
+[remote "origin"]
+	url = git@github.com:xiechengmude/xDAN-DataQualityAssessment.git
+	fetch = +refs/heads/*:refs/remotes/origin/*
+[branch "test"]
+	vscode-merge-base = origin/dev
+	remote = origin
+	merge = refs/heads/test
+[branch "main"]
+	remote = origin
+	merge = refs/heads/main
+[pull]
+	rebase = false
+[branch "dev"]
+	remote = origin
+	merge = refs/heads/dev

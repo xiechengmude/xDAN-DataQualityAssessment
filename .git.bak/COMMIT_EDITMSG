@@ -1,0 +1,5 @@
+feat: 优化数据转换和上传逻辑
+
+1. 修改数据集命名规则，现在包含数据集名称和任务名称
+2. 更新direct_refined_answer模板，添加boxed答案格式
+3. 修复OpenAI API配置，使用配置文件中的URL
