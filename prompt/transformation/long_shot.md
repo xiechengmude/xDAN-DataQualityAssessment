@@ -1,4 +1,4 @@
-Please provide a clear and concise answer to the following question. Focus on being direct and informative.
+Lets think step by step to provide a clear and concise answer to the following question. Focus on being direct and informative.
 
 Question: {instruction}
 {context}

@@ -18,9 +18,9 @@ openai:
 
 # 并发配置
 concurrency:
-  max_concurrent_requests: 50  # 降低并发数
-  batch_size: 50  # 降低批量大小
-  request_timeout: 120  # 增加超时时间
+  max_concurrent_requests: 20  # 设置并发数为20
+  batch_size: 20  # 设置批量大小为20
+  request_timeout: 120  # 保持超时时间
   max_retries: 3
   retry_delay: 1
 
@@ -31,25 +31,25 @@ rate_limits:
 
 # 数据集配置
 datasets:
-  - name: "HuggingFaceH4/MATH-500"  # 数据集名称
-    config: ""  # 数据集配置名称
-    split: "test"  # 数据集分片
-    subset: ""  # 数据集子集
-    num_samples: -1  # 加载的样本数量，-1表示全部加载
-    field_mapping:  # 字段映射配置
-      instruction: "problem"
-      input: ""
-      output: "solution"
+  # - name: "HuggingFaceH4/MATH-500"  # 数据集名称
+  #   config: ""  # 数据集配置名称
+  #   split: "test"  # 数据集分片
+  #   subset: ""  # 数据集子集
+  #   num_samples: -1  # 加载的样本数量，-1表示全部加载
+  #   field_mapping:  # 字段映射配置
+  #     instruction: "problem"
+  #     input: ""
+  #     output: "solution"
 
-  # - name: "xDAN2099/xDAN-Agentic-Chat-v1-alpaca-ds-v3-cleaned-v0-part2"
-  #   config: ""
-  #   split: "train"
-  #   subset: ""
-  #   num_samples: -1  # 处理全部数据
-  #   field_mapping:
-  #     instruction: "instruction"
-  #     input: "input"
-  #     output: "output"
+  - name: "xDAN2099/AIME_1983_2024"
+    config: ""
+    split: "train"
+    subset: ""
+    num_samples: -1  # 处理全部数据
+    field_mapping:
+      instruction: "Question"
+      input: ""
+      output: "output"
 # 数据集通用配置
 dataset_common:
   hf_cache_dir: "~/.cache/huggingface/datasets"
@@ -75,6 +75,9 @@ transform:
     long_cot:  # 详细的Chain-of-Thought分析模板
       path: "prompt/transformation/long_cot_shot_en.md"
       description: "使用详细的Chain-of-Thought方法进行深入分析和回答，适合复杂问题"
+    long_shot:  # LongShot分析模板
+      path: "prompt/transformation/long_shot.md"
+      description: "LongShot模板"
 
 # 输出配置
 output:
