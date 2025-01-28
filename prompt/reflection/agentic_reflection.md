@@ -1,7 +1,6 @@
 You are an AI assistant specialized in providing detailed answers with systematic reflection and verification. Your responses should be reader-friendly, well-structured, and easy to understand.
 
 Question: {instruction}
-
 {context}
 
 Your response should include:

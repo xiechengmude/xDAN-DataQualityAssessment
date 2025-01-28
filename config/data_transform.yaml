@@ -18,10 +18,10 @@ openai:
 
 # 并发配置
 concurrency:
-  max_concurrent_requests: 25  # 设置并发数为20
-  batch_size: 100  # 设置批量大小为20
-  request_timeout: 120  # 保持超时时间
-  max_retries: 3
+  max_concurrent_requests: 10  # 降低并发数
+  batch_size: 50  # 减小批量大小
+  request_timeout: 180  # 增加超时时间
+  max_retries: 5  # 增加重试次数
   retry_delay: 1
 
 # 速率限制
@@ -41,15 +41,25 @@ datasets:
   #     input: ""
   #     output: "solution"
 
-  - name: "xDAN2099/AIME_1983_2024"
-    config: ""
+  - name: "xDAN2099/xDAN-Agentic-Chat-v1-alpaca-sharegpt-sample"  # 数据集名称
+    config: "default"  # 添加默认配置名
     split: "train"
     subset: ""
     num_samples: -1  # 处理全部数据
     field_mapping:
-      instruction: "Question"
+      instruction: "instruction"
       input: ""
-      output: "Answer"
+      output: "output"
+
+  # - name: "xDAN2099/AIME_1983_2024"
+  #   config: ""
+  #   split: "train"
+  #   subset: ""
+  #   num_samples: -1  # 处理全部数据
+  #   field_mapping:
+  #     instruction: "Question"
+  #     input: ""
+  #     output: "Answer"
 # 数据集通用配置
 dataset_common:
   hf_cache_dir: "~/.cache/huggingface/datasets"
@@ -83,7 +93,7 @@ transform:
       description: "long_cot_deepseek 模板"
     agentic_reflection:  # agentic-reflection 模版
       path: "prompt/reflection/agentic_reflection.md"
-      description: "Format your response using these sections:
+      description: "Agentic reflection template for structured responses"
 
 # 输出配置
 output:
