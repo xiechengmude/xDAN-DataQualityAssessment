@@ -81,6 +81,9 @@ transform:
     long_cot_deepseek:  # long_cot_deepseek 模板
       path: "prompt/transformation/long_cot_deepseek.md"
       description: "long_cot_deepseek 模板"
+    agentic_reflection:  # agentic-reflection 模版
+      path: "prompt/reflection/agentic_reflection.md"
+      description: "Format your response using these sections:
 
 # 输出配置
 output:
