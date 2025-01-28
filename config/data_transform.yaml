@@ -18,16 +18,16 @@ openai:
 
 # 并发配置
 concurrency:
-  max_concurrent_requests: 20  # 设置并发数为20
-  batch_size: 20  # 设置批量大小为20
+  max_concurrent_requests: 25  # 设置并发数为20
+  batch_size: 100  # 设置批量大小为20
   request_timeout: 120  # 保持超时时间
   max_retries: 3
   retry_delay: 1
 
 # 速率限制
 rate_limits:
-  tokens_per_minute: 200000
-  requests_per_minute: 2000
+  tokens_per_minute: 2000000
+  requests_per_minute: 1000
 
 # 数据集配置
 datasets:
@@ -49,7 +49,7 @@ datasets:
     field_mapping:
       instruction: "Question"
       input: ""
-      output: "output"
+      output: "Answer"
 # 数据集通用配置
 dataset_common:
   hf_cache_dir: "~/.cache/huggingface/datasets"
@@ -64,7 +64,7 @@ transform:
     - output
   optional_fields:  # 可选字段
     - input
-  prompt_template: "direct_refined_answer_cot"  # 使用的prompt模板名称
+  prompt_template: "long_cot_deepseek"  # 使用的prompt模板名称
   prompt_templates:
     structured_analysis:  # 结构化分析模板
       path: "prompt/transformation/structured_analysis.md"
@@ -78,6 +78,9 @@ transform:
     long_shot:  # LongShot分析模板
       path: "prompt/transformation/long_shot.md"
       description: "LongShot模板"
+    long_cot_deepseek:  # long_cot_deepseek 模板
+      path: "prompt/transformation/long_cot_deepseek.md"
+      description: "long_cot_deepseek 模板"
 
 # 输出配置
 output:

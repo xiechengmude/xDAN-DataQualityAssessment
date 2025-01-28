@@ -1,0 +1,152 @@
+[
+  {
+    "id": 420,
+    "instruction": "Equilateral $\\triangle ABC$ is inscribed in a circle of radius 2. Extend $\\overline{AB}$ through $B$ to point $D$ so that $AD=13,$ and extend $\\overline{AC}$ through $C$ to point $E$ so that $AE = 11.$ Through $D,$ draw a line $l_1$ parallel to $\\overline{AE},$ and through $E,$ draw a line $l_2$ parallel to $\\overline{AD}.$ Let $F$ be the intersection of $l_1$ and $l_2.$ Let $G$ be the point on the circle that is collinear with $A$ and $F$ and distinct from $A.$ Given that the area of $\\triangle CBG$ can be expressed in the form $\\frac{p\\sqrt{q}}{r},$ where $p, q,$ and $r$ are positive integers, $p$ and $r$ are relatively prime, and $q$ is not divisible by the square of any prime, find $p+q+r.$",
+    "output": "865",
+    "refined_output": "Given an equilateral triangle \\( \\triangle ABC \\) inscribed in a circle of radius 2, we extend \\( \\overline{AB} \\) through \\( B \\) to point \\( D \\) such that \\( AD = 13 \\), and extend \\( \\overline{AC} \\) through \\( C \\) to point \\( E \\) such that \\( AE = 11 \\). Through \\( D \\), we draw line \\( l_1 \\) parallel to \\( \\overline{AE} \\), and through \\( E \\), we draw line \\( l_2 \\) parallel to \\( \\overline{AD} \\). The intersection of \\( l_1 \\) and \\( l_2 \\) is point \\( F \\). Point \\( G \\) is the point on the circle collinear with \\( A \\) and \\( F \\) and distinct from \\( A \\). We need to find the area of \\( \\triangle CBG \\).\n\n1. **Coordinates of Points**:\n   - The circle is centered at the origin \\((0,0)\\) with radius 2.\n   - Points \\( A \\), \\( B \\), and \\( C \\) are at \\((2,0)\\), \\((-1, \\sqrt{3})\\), and \\((-1, -\\sqrt{3})\\) respectively.\n\n2. **Finding Points \\( D \\) and \\( E \\)**:\n   - Extend \\( AB \\) and \\( AC \\) to \\( D \\) and \\( E \\) such that \\( AD = 13 \\) and \\( AE = 11 \\).\n   - Coordinates of \\( D \\) and \\( E \\) are calculated using parametric equations and direction vectors:\n     - \\( D \\left( 2 - \\frac{13\\sqrt{3}}{2}, \\frac{13}{2} \\right) \\)\n     - \\( E \\left( 2 - \\frac{11\\sqrt{3}}{2}, -\\frac{11}{2} \\right) \\)\n\n3. **Equations of Lines \\( l_1 \\) and \\( l_2 \\)**:\n   - Line \\( l_1 \\) through \\( D \\) parallel to \\( \\overline{AE} \\)\n   - Line \\( l_2 \\) through \\( E \\) parallel to \\( \\overline{AD} \\)\n   - Parametric equations for \\( l_1 \\) and \\( l_2 \\) lead to solving for intersection \\( F \\).\n\n4. **Intersection Point \\( F \\)**:\n   - Solving the parametric equations, \\( F \\) is found at \\( \\left( 2 - 12\\sqrt{3}, 1 \\right) \\).\n\n5. **Finding Point \\( G \\)**:\n   - Parametrize line \\( AF \\) and find intersection with the circle \\( x^2 + y^2 = 4 \\).\n   - Coordinates of \\( G \\) are \\( \\left( -\\frac{862}{433}, \\frac{48\\sqrt{3}}{433} \\right) \\).\n\n6. **Area of \\( \\triangle CBG \\)**:\n   - Using the determinant formula for the area of a triangle with vertices \\( C(-1, -\\sqrt{3}) \\), \\( B(-1, \\sqrt{3}) \\), and \\( G \\left( -\\frac{862}{433}, \\frac{48\\sqrt{3}}{433} \\right) \\):\n   - The area is calculated as \\( \\frac{429\\sqrt{3}}{433} \\).\n\nThe final answer, expressed as \\( \\frac{p\\sqrt{q}}{r} \\), gives \\( p = 429 \\), \\( q = 3 \\), and \\( r = 433 \\). Thus, \\( p + q + r = 429 + 3 + 433 = 865 \\).\n\n\\[\n\\boxed{865}\n\\]",
+    "token_info": {
+      "input_tokens": 484,
+      "output_tokens": 5822,
+      "total_tokens": 6306,
+      "estimated_cost": 0.012128,
+      "currency": "CNY"
+    },
+    "input": null,
+    "model_name": "deepseek-reasoner",
+    "sources": "xDAN2099/AIME_1983_2024",
+    "timestamp": "2025-01-27T22:53:10.637877",
+    "metadata": {
+      "dataset_name": "xDAN2099/AIME_1983_2024",
+      "timestamp": "20250127_220309",
+      "ID": "2006-II-12",
+      "Year": 2006,
+      "Problem Number": 12,
+      "Part": "II"
+    }
+  },
+  {
+    "id": 430,
+    "instruction": "Let $N = \\sum_{k = 1}^{1000} k ( \\lceil \\log_{\\sqrt{2}} k \\rceil  - \\lfloor \\log_{\\sqrt{2}} k \\rfloor )$ Find the remainder when $N$ is divided by 1000.  ( $\\lfloor{k}\\rfloor$ is the greatest integer less than or equal to $k$ , and $\\lceil{k}\\rceil$ is the least integer greater than or equal to $k$ .)",
+    "output": "477",
+    "refined_output": "To solve the problem, we analyze the expression \\( N = \\sum_{k=1}^{1000} k \\left( \\lceil \\log_{\\sqrt{2}} k \\rceil - \\lfloor \\log_{\\sqrt{2}} k \\rfloor \\right) \\). The term \\( \\lceil \\log_{\\sqrt{2}} k \\rceil - \\lfloor \\log_{\\sqrt{2}} k \\rfloor \\) equals 1 if \\( \\log_{\\sqrt{2}} k \\) is not an integer and 0 if it is. Thus, \\( N \\) is the sum of all \\( k \\) from 1 to 1000 excluding those where \\( \\log_{\\sqrt{2}} k \\) is an integer.\n\n1. **Total Sum Calculation**:\n   The sum of integers from 1 to 1000 is:\n   \\[\n   S = \\frac{1000 \\cdot 1001}{2} = 500500\n   \\]\n\n2. **Identifying Excluded Terms**:\n   \\( \\log_{\\sqrt{2}} k = 2 \\log_2 k \\). For this to be an integer, \\( \\log_2 k \\) must be a half-integer, implying \\( k \\) is a power of 2. The powers of 2 up to 1000 are \\( 1, 2, 4, 8, 16, 32, 64, 128, 256, 512 \\).\n\n3. **Sum of Excluded Terms**:\n   These form a geometric series:\n   \\[\n   \\text{Sum} = 1 + 2 + 4 + \\dots + 512 = 2^{10} - 1 = 1023\n   \\]\n\n4. **Compute \\( N \\)**:\n   Subtract the excluded sum from the total:\n   \\[\n   N = 500500 - 1023 = 499477\n   \\]\n\n5. **Find Remainder Modulo 1000**:\n   \\[\n   499477 \\mod 1000 = 477\n   \\]\n\n**Answer**: The remainder when \\( N \\) is divided by 1000 is \\(\\boxed{477}\\).",
+    "token_info": {
+      "input_tokens": 372,
+      "output_tokens": 2542,
+      "total_tokens": 2914,
+      "estimated_cost": 0.005456,
+      "currency": "CNY"
+    },
+    "input": null,
+    "model_name": "deepseek-reasoner",
+    "sources": "xDAN2099/AIME_1983_2024",
+    "timestamp": "2025-01-27T22:52:26.930946",
+    "metadata": {
+      "dataset_name": "xDAN2099/AIME_1983_2024",
+      "timestamp": "20250127_220309",
+      "ID": "2007-I-7",
+      "Year": 2007,
+      "Problem Number": 7,
+      "Part": "I"
+    }
+  },
+  {
+    "id": 444,
+    "instruction": "Given a real number $x,$ let $\\lfloor x \\rfloor$ denote the greatest integer less than or equal to $x.$ For a certain integer $k,$ there are exactly $70$ positive integers $n_{1}, n_{2}, \\ldots, n_{70}$ such that $k=\\lfloor\\sqrt[3]{n_{1}}\\rfloor = \\lfloor\\sqrt[3]{n_{2}}\\rfloor = \\cdots = \\lfloor\\sqrt[3]{n_{70}}\\rfloor$ and $k$ divides $n_{i}$ for all $i$ such that $1 \\leq i \\leq 70.$ Find the maximum value of $\\frac{n_{i}}{k}$ for $1\\leq i \\leq 70.$",
+    "output": "553",
+    "refined_output": "**Final Refined Solution:**\n\nTo solve the problem, we need to determine the integer \\( k \\) such that there are exactly 70 positive integers \\( n_i \\) in the interval \\([k^3, (k+1)^3 - 1]\\) divisible by \\( k \\), and then find the maximum value of \\( \\frac{n_i}{k} \\).\n\n1. **Identify the Range for \\( n_i \\):**\n   - The numbers \\( n_i \\) satisfy \\( k = \\lfloor \\sqrt[3]{n_i} \\rfloor \\), so they lie in the interval \\([k^3, (k+1)^3 - 1]\\).\n\n2. **Count Multiples of \\( k \\) in the Interval:**\n   - The number of multiples of \\( k \\) in \\([k^3, (k+1)^3 - 1]\\) is calculated using floor functions:\n     \\[\n     \\left\\lfloor \\frac{(k+1)^3 - 1}{k} \\right\\rfloor - \\left\\lfloor \\frac{k^3 - 1}{k} \\right\\rfloor\n     \\]\n   - Simplifying:\n     \\[\n     \\frac{(k+1)^3 - 1}{k} = k^2 + 3k + 3 \\quad \\text{(exact division)}\n     \\]\n     \\[\n     \\frac{k^3 - 1}{k} = k^2 - \\frac{1}{k} \\implies \\left\\lfloor \\frac{k^3 - 1}{k} \\right\\rfloor = k^2 - 1\n     \\]\n   - The count of multiples is:\n     \\[\n     (k^2 + 3k + 3) - (k^2 - 1) = 3k + 4\n     \\]\n\n3. **Solve for \\( k \\):**\n   - Set \\( 3k + 4 = 70 \\):\n     \\[\n     3k = 66 \\implies k = 22\n     \\]\n\n4. **Compute the Maximum \\( \\frac{n_i}{k} \\):**\n   - The largest \\( n_i \\) in the interval is \\( (k+1)^3 - 1 \\), so:\n     \\[\n     \\frac{(k+1)^3 - 1}{k} = k^2 + 3k + 3\n     \\]\n   - Substituting \\( k = 22 \\):\n     \\[\n     22^2 + 3(22) + 3 = 484 + 66 + 3 = 553\n     \\]\n\n**Answer:** \\(\\boxed{553}\\)",
+    "token_info": {
+      "input_tokens": 422,
+      "output_tokens": 2175,
+      "total_tokens": 2597,
+      "estimated_cost": 0.004771999999999999,
+      "currency": "CNY"
+    },
+    "input": null,
+    "model_name": "deepseek-reasoner",
+    "sources": "xDAN2099/AIME_1983_2024",
+    "timestamp": "2025-01-27T22:52:18.482410",
+    "metadata": {
+      "dataset_name": "xDAN2099/AIME_1983_2024",
+      "timestamp": "20250127_220309",
+      "ID": "2007-II-7",
+      "Year": 2007,
+      "Problem Number": 7,
+      "Part": "II"
+    }
+  },
+  {
+    "id": 470,
+    "instruction": "In trapezoid $ABCD$ with $\\overline{BC}\\parallel\\overline{AD}$ , let $BC = 1000$ and $AD = 2008$ . Let $\\angle A = 37^\\circ$ , $\\angle D = 53^\\circ$ , and $M$ and $N$ be the midpoints of $\\overline{BC}$ and $\\overline{AD}$ , respectively. Find the length $MN$ .",
+    "output": "504",
+    "refined_output": "To find the length \\( MN \\) in trapezoid \\( ABCD \\) with \\( \\overline{BC} \\parallel \\overline{AD} \\), where \\( BC = 1000 \\), \\( AD = 2008 \\), \\( \\angle A = 37^\\circ \\), and \\( \\angle D = 53^\\circ \\), follow these steps:\n\n1. **Coordinate Setup**:\n   - Place \\( A \\) at \\( (0, 0) \\) and \\( D \\) at \\( (2008, 0) \\).\n   - Let \\( h \\) be the height of the trapezoid. Using trigonometric identities:\n     \\[\n     h = AB \\sin(37^\\circ) = CD \\sin(53^\\circ)\n     \\]\n   - The horizontal difference between the bases \\( AD \\) and \\( BC \\) is \\( 2008 - 1000 = 1008 \\). This difference equals the sum of the horizontal components of \\( AB \\) and \\( CD \\):\n     \\[\n     1008 = AB \\cos(37^\\circ) + CD \\cos(53^\\circ)\n     \\]\n   - Substituting \\( AB = \\frac{h}{\\sin(37^\\circ)} \\) and \\( CD = \\frac{h}{\\sin(53^\\circ)} \\):\n     \\[\n     1008 = h \\left( \\cot(37^\\circ) + \\cot(53^\\circ) \\right)\n     \\]\n   - Using \\( \\cot(37^\\circ) = \\frac{4}{3} \\) and \\( \\cot(53^\\circ) = \\frac{3}{4} \\):\n     \\[\n     1008 = h \\left( \\frac{4}{3} + \\frac{3}{4} \\right) = h \\cdot \\frac{25}{12} \\implies h = \\frac{1008 \\cdot 12}{25} = 483.84\n     \\]\n\n2. **Coordinates of \\( B \\) and \\( C \\)**:\n   - \\( B \\) is determined by moving from \\( A \\) at \\( 37^\\circ \\):\n     \\[\n     B = \\left( \\frac{5h}{3} \\cos(37^\\circ), h \\right) = (645.12, 483.84)\n     \\]\n   - \\( C \\) is determined by moving from \\( D \\) at \\( 53^\\circ \\):\n     \\[\n     C = \\left( 2008 - \\frac{5h}{4} \\cos(53^\\circ), h \\right) = (1645.12, 483.84)\n     \\]\n\n3. **Midpoints \\( M \\) and \\( N \\)**:\n   - Midpoint \\( M \\) of \\( BC \\):\n     \\[\n     M = \\left( \\frac{645.12 + 1645.12}{2}, 483.84 \\right) = (1145.12, 483.84)\n     \\]\n   - Midpoint \\( N \\) of \\( AD \\):\n     \\[\n     N = \\left( \\frac{0 + 2008}{2}, 0 \\right) = (1004, 0)\n     \\]\n\n4. **Distance \\( MN \\)**:\n   - Using the distance formula:\n     \\[\n     MN = \\sqrt{(1145.12 - 1004)^2 + (483.84 - 0)^2} = \\sqrt{141.12^2 + 483.84^2} = \\sqrt{254016} = 504\n     \\]\n\n**Final Answer**: \\(\\boxed{504}\\)",
+    "token_info": {
+      "input_tokens": 353,
+      "output_tokens": 4690,
+      "total_tokens": 5043,
+      "estimated_cost": 0.009732999999999999,
+      "currency": "CNY"
+    },
+    "input": null,
+    "model_name": "deepseek-reasoner",
+    "sources": "xDAN2099/AIME_1983_2024",
+    "timestamp": "2025-01-27T22:53:48.306232",
+    "metadata": {
+      "dataset_name": "xDAN2099/AIME_1983_2024",
+      "timestamp": "20250127_220309",
+      "ID": "2008-II-5",
+      "Year": 2008,
+      "Problem Number": 5,
+      "Part": "II"
+    }
+  },
+  {
+    "id": 472,
+    "instruction": "Let $r$ , $s$ , and $t$ be the three roots of the equation \\[8x^3 + 1001x + 2008 = 0.\\] Find $(r + s)^3 + (s + t)^3 + (t + r)^3$ .",
+    "output": "753",
+    "refined_output": "To solve the problem, we start by recognizing that the roots \\( r, s, t \\) of the cubic equation \\( 8x^3 + 1001x + 2008 = 0 \\) satisfy Vieta's formulas. Since the equation lacks an \\( x^2 \\)-term, we have:\n\n\\[\n\\begin{align*}\nr + s + t &= 0, \\\\\nrs + rt + st &= \\frac{1001}{8}, \\\\\nrst &= -\\frac{2008}{8} = -251.\n\\end{align*}\n\\]\n\nWe need to compute \\( (r + s)^3 + (s + t)^3 + (t + r)^3 \\). Notice that \\( r + s = -t \\), \\( s + t = -r \\), and \\( t + r = -s \\). Substituting these into the expression gives:\n\n\\[\n(-t)^3 + (-r)^3 + (-s)^3 = -t^3 - r^3 - s^3 = -(r^3 + s^3 + t^3).\n\\]\n\nNext, we calculate \\( r^3 + s^3 + t^3 \\). Using the identity for the sum of cubes and Vieta's results:\n\n\\[\nr^3 + s^3 + t^3 = (r + s + t)^3 - 3(r + s + t)(rs + rt + st) + 3rst.\n\\]\n\nSince \\( r + s + t = 0 \\), this simplifies to:\n\n\\[\nr^3 + s^3 + t^3 = 3rst = 3(-251) = -753.\n\\]\n\nThus, the original expression becomes:\n\n\\[\n-(r^3 + s^3 + t^3) = -(-753) = 753.\n\\]\n\n**Final Answer:** \\(\\boxed{753}\\)",
+    "token_info": {
+      "input_tokens": 324,
+      "output_tokens": 1390,
+      "total_tokens": 1714,
+      "estimated_cost": 0.003104,
+      "currency": "CNY"
+    },
+    "input": null,
+    "model_name": "deepseek-reasoner",
+    "sources": "xDAN2099/AIME_1983_2024",
+    "timestamp": "2025-01-27T22:52:08.350845",
+    "metadata": {
+      "dataset_name": "xDAN2099/AIME_1983_2024",
+      "timestamp": "20250127_220309",
+      "ID": "2008-II-7",
+      "Year": 2008,
+      "Problem Number": 7,
+      "Part": "II"
+    }
+  },
+  {
+    "id": 494,
+    "instruction": "Before starting to paint, Bill had $130$ ounces of blue paint, $164$ ounces of red paint, and $188$ ounces of white paint. Bill painted four equally sized stripes on a wall, making a blue stripe, a red stripe, a white stripe, and a pink stripe. Pink is a mixture of red and white, not necessarily in equal amounts. When Bill finished, he had equal amounts of blue, red, and white paint left. Find the total number of ounces of paint Bill had left.",
+    "output": "114",
+    "refined_output": "**Final Refined Solution:**\n\nLet's break down the problem step by step:\n\n1. **Define Variables:**\n   - Let \\( s \\) be the volume (in ounces) of each stripe.\n   - Let \\( r \\) and \\( w \\) be the amounts of red and white paint used in the pink stripe, respectively.\n   - Let \\( x \\) be the equal remaining volume of blue, red, and white paint.\n\n2. **Key Relationships:**\n   - For the pink stripe: \\( r + w = s \\).\n   - Remaining paint:\n     - Blue: \\( 130 - s = x \\)\n     - Red: \\( 164 - s - r = x \\)\n     - White: \\( 188 - s - w = x \\)\n\n3. **Solve for \\( r \\) and \\( w \\):**\n   - From the blue equation: \\( x = 130 - s \\).\n   - Substitute \\( x \\) into the red equation:\n     \\[\n     164 - s - r = 130 - s \\implies r = 34\n     \\]\n   - Substitute \\( x \\) into the white equation:\n     \\[\n     188 - s - w = 130 - s \\implies w = 58\n     \\]\n\n4. **Determine \\( s \\):**\n   - Using \\( r + w = s \\):\n     \\[\n     34 + 58 = 92 \\implies s = 92\n     \\]\n\n5. **Calculate Remaining Paint \\( x \\):**\n   - Substitute \\( s = 92 \\) into \\( x = 130 - s \\):\n     \\[\n     x = 130 - 92 = 38\n     \\]\n   - Total remaining paint: \\( 3x = 3 \\times 38 = 114 \\).\n\n**Answer:** Bill had \\(\\boxed{114}\\) ounces of paint left.",
+    "token_info": {
+      "input_tokens": 368,
+      "output_tokens": 1700,
+      "total_tokens": 2068,
+      "estimated_cost": 0.0037679999999999996,
+      "currency": "CNY"
+    },
+    "input": null,
+    "model_name": "deepseek-reasoner",
+    "sources": "xDAN2099/AIME_1983_2024",
+    "timestamp": "2025-01-27T22:52:14.014819",
+    "metadata": {
+      "dataset_name": "xDAN2099/AIME_1983_2024",
+      "timestamp": "20250127_220309",
+      "ID": "2009-II-1",
+      "Year": 2009,
+      "Problem Number": 1,
+      "Part": "II"
+    }
+  }
+]
