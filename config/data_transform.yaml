@@ -45,7 +45,7 @@ datasets:
     config: "default"  # 添加默认配置名
     split: "train"
     subset: ""
-    num_samples: -1  # 处理全部数据
+    num_samples: 200  # 处理全部数据
     field_mapping:
       instruction: "instruction"
       input: ""
@@ -99,8 +99,8 @@ transform:
 output:
   base_dir: "output"  # 基础输出目录
   save_local: true  # 同时保存到本地
-  save_interval: 1000  # 每1000条数据保存一次分段JSON
-  push_interval: 5000  # 每5000条数据推送一次到hub
+  save_interval: 500  # 每1000条数据保存一次分段JSON
+  push_interval: 2000  # 每5000条数据推送一次到hub
   push_to_hub: true  # 启用推送到hub
   hub_config:
     owner: "xDAN2099"  # Hugging Face Hub 用户名/组织名
