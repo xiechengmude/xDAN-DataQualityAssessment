@@ -33,35 +33,35 @@ rate_limits:
 
 # 数据集配置
 datasets:
-  - name: "HuggingFaceH4/MATH-500"  # 数据集名称
-    config: ""  # 数据集配置名称
-    split: "test"  # 数据集分片
-    subset: ""  # 数据集子集
-    num_samples: -1  # 加载的样本数量，-1表示全部加载
-    field_mapping:  # 字段映射配置
-      instruction: "problem"
-      input: ""
-      output: "solution"
+#   - name: "HuggingFaceH4/MATH-500"  # 数据集名称
+#     config: ""  # 数据集配置名称
+#     split: "test"  # 数据集分片
+#     subset: ""  # 数据集子集
+#     num_samples: -1  # 加载的样本数量，-1表示全部加载
+#     field_mapping:  # 字段映射配置
+#       instruction: "problem"
+#       input: ""
+#       output: "solution"
 
-  # - name: "xDAN2099/xDAN-Agentic-Chat-v1-alpaca-sharegpt-sample"  # 数据集名称
-  #   config: "default"  # 添加默认配置名
-  #   split: "train"
-  #   subset: ""
-  #   num_samples: 200  # 处理全部数据
-  #   field_mapping:
-  #     instruction: "instruction"
-  #     input: ""
-  #     output: "output"
-
-  - name: "xDAN2099/AIME_1983_2024"
-    config: ""
+  - name: "xDAN2099/xDAN-Agentic-Chat-v1-alpaca-sharegpt-sample"  # 数据集名称
+    config: "default"  # 添加默认配置名
     split: "train"
     subset: ""
     num_samples: -1  # 处理全部数据
     field_mapping:
-      instruction: "Question"
+      instruction: "instruction"
       input: ""
-      output: "Answer"
+      output: "output"
+
+  # - name: "xDAN2099/AIME_1983_2024"
+  #   config: ""
+  #   split: "train"
+  #   subset: ""
+  #   num_samples: -1  # 处理全部数据
+  #   field_mapping:
+  #     instruction: "Question"
+  #     input: ""
+  #     output: "Answer"
 # 数据集通用配置
 dataset_common:
   hf_cache_dir: "~/.cache/huggingface/datasets"
