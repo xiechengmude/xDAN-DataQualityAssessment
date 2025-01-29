@@ -102,22 +102,72 @@ class DatasetManager:
         # 创建数据集
         dataset_dict = {}
         
-        # 根据数据源分组
+        # 根据数据源分组并统计
+        source_stats = {}
         for item in data:
             source = item.get("sources", "default")
             if source not in dataset_dict:
                 dataset_dict[source] = []
+                source_stats[source] = 0
             dataset_dict[source].append(item)
+            source_stats[source] += 1
             
         # 为每个数据源创建数据集
         full_dataset = datasets.DatasetDict()
         for source, items in dataset_dict.items():
             full_dataset[source] = datasets.Dataset.from_list(items)
             
+        # 生成README内容
+        readme_content = f"""# {dataset_name} Dataset
+
+This dataset is a processed collection of data from multiple sources.
+
+## Dataset Composition
+
+Total number of examples: {len(data)}
+
+Source distribution:
+"""
+        for source, count in source_stats.items():
+            percentage = (count / len(data)) * 100
+            readme_content += f"- {source}: {count} examples ({percentage:.2f}%)\n"
+            
+        readme_content += """
+## Data Format
+
+Each example in the dataset follows this format:
+```python
+{
+    "instruction": "The task instruction",
+    "input": "Optional input for the task",
+    "output": "The expected output",
+    "sources": "The source dataset"
+}
+```
+
+## License
+
+This dataset is intended for research purposes.
+"""
+        
         # 推送到hub
         repository_id = hub_config["repository_id"]
         if not "/" in repository_id:
             repository_id = f"{repository_id}/{dataset_name}"
+            
+        # 创建或更新README.md
+        api = HfApi()
+        try:
+            api.upload_file(
+                path_or_fileobj=readme_content.encode(),
+                path_in_repo="README.md",
+                repo_id=repository_id,
+                repo_type="dataset",
+                token=hub_config["token"],
+                commit_message=f"Update README for {dataset_name}"
+            )
+        except Exception as e:
+            logger.warning(f"Failed to upload README.md: {str(e)}")
             
         full_dataset.push_to_hub(
             repository_id,
