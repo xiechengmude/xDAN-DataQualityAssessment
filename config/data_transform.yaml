@@ -53,15 +53,15 @@ datasets:
   #     input: ""
   #     output: "output"
 
-  # - name: "xDAN2099/AIME_1983_2024"
-  #   config: ""
-  #   split: "train"
-  #   subset: ""
-  #   num_samples: -1  # 处理全部数据
-  #   field_mapping:
-  #     instruction: "Question"
-  #     input: ""
-  #     output: "Answer"
+  - name: "xDAN2099/AIME_1983_2024"
+    config: ""
+    split: "train"
+    subset: ""
+    num_samples: -1  # 处理全部数据
+    field_mapping:
+      instruction: "Question"
+      input: ""
+      output: "Answer"
 # 数据集通用配置
 dataset_common:
   hf_cache_dir: "~/.cache/huggingface/datasets"
